@@ -36,7 +36,7 @@ _devenv_run_compose() {
     fi
 }
 
-dev() {
+devenv() {
     local language=${1:-golang}
     local release=${2:-1.26}
     local version=${3:-dev}
@@ -67,7 +67,7 @@ dev() {
         bash
 }
 
-dev-connect() {
+devenv-connect() {
     local language=${1:-golang}
     local project=$(pwd | sed 's/\//-/g' | sed 's/^-//')
     local container_name="devenv-${project}-${language}"
