@@ -85,3 +85,28 @@ devenv-connect() {
         fi
     fi
 }
+
+devenv-exec() {
+    local language=${1:-golang}
+    local project=$(pwd | sed 's/\//-/g' | sed 's/^-//')
+    local container_name="devenv-${project}-${language}"
+    shift 1
+
+    if [ $# -eq 0 ]; then
+        echo "Usage: devenv-exec [language] <command> [args...]"
+        return 1
+    fi
+
+    if docker info &>/dev/null 2>&1; then
+        docker exec $container_name "$@"
+    else
+        echo "Docker requires sudo to run. Do you want to escalate to root? [y/N]"
+        read -r answer
+        if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+            sudo docker exec $container_name "$@"
+        else
+            echo "Aborted."
+            return 1
+        fi
+    fi
+}
