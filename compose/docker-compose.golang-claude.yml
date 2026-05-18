@@ -1,0 +1,17 @@
+services:
+  golang-claude:
+    image: golang-claude-dev:${GO_RELEASE:-1.26}-${IMAGE_VERSION:-dev}
+    container_name: devenv-${COMPOSE_PROJECT_NAME}-golang-claude
+    pull_policy: never
+    ports:
+      - "2345:2345"
+    volumes:
+      - ${_DEVENV_USER_HOME}/.dockerdevenv/go-mod/${GO_RELEASE:-1.26}:/home/dockergo/go/pkg/mod
+      - ${_DEVENV_USER_HOME}/.dockerdevenv/go-cache/${GO_RELEASE:-1.26}:/home/dockergo/.cache/go-build
+      - ${CLAUDE_CONFIG_DIR}:/home/dockergo/.claude
+      - ${CLAUDE_CONFIG_FILE}:/home/dockergo/.claude.json
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    working_dir: /workspace
+    tty: true
+    stdin_open: true

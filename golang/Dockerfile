@@ -14,6 +14,15 @@ RUN apt-get update && apt-get install -y \
     fd-find \
     jq \
     vim \
+    libgl1-mesa-dev \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxi-dev \
+    libxxf86vm-dev \
+    libx11-dev \
+    pkg-config \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g $GROUP_ID dockergo && \
@@ -21,6 +30,9 @@ RUN groupadd -g $GROUP_ID dockergo && \
 
 RUN mkdir -p /home/dockergo/go && \
     chown -R $USER_ID:$GROUP_ID /home/dockergo/go
+
+RUN mkdir -p /home/dockergo/.cache/go-build && \
+    chown -R $USER_ID:$GROUP_ID /home/dockergo/.cache
 
 USER dockergo
 

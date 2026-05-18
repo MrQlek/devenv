@@ -7,6 +7,7 @@ services:
       - "2345:2345"
     volumes:
       - ${_DEVENV_USER_HOME}/.dockerdevenv/go-mod/${GO_RELEASE:-1.26}:/home/dockergo/go/pkg/mod
+      - ${_DEVENV_USER_HOME}/.dockerdevenv/go-cache/${GO_RELEASE:-1.26}:/home/dockergo/.cache/go-build
     working_dir: /workspace
     tty: true
     stdin_open: true
