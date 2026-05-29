@@ -11,11 +11,11 @@ Two Docker image variants are available:
 | `golang-dev` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
 | `golang-claude-dev` | Extends `golang-dev` with Claude Code CLI pre-installed |
 
-Containers run as a non-root user (`dockergo`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.dockerdevenv/go-mod/<version>/`.
+Containers run as a non-root user (`dockergo`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.dockerdevenv/go-mod/<image-version>/`.
 
 ## Requirements
 
-- Docker with Compose plugin (`docker compose`) or `docker-compose`
+- Docker with Compose plugin (`docker compose`)
 - GNU Make
 
 ## Building Images
@@ -26,20 +26,20 @@ Containers run as a non-root user (`dockergo`) matching your host UID/GID. The G
 
 ```bash
 # Production (requires golang/* git tag)
-make build-golang GO_RELEASE=1.24
+make build-golang
 
 # Local dev
-make build-golang-dev GO_RELEASE=1.24
+make build-golang-dev
 ```
 
 ### Go + Claude Code image
 
 ```bash
-# Production (requires golang-dev:<version>-<tag> base image)
-make build-golang-claude GO_RELEASE=1.24
+# Production (requires golang-dev:<tag> base image)
+make build-golang-claude
 
-# Local dev (requires golang-dev:<version>-dev base image)
-make build-golang-claude-dev GO_RELEASE=1.24
+# Local dev (requires golang-dev:dev base image)
+make build-golang-claude-dev
 ```
 
 List available golang tags:
@@ -58,22 +58,30 @@ source /path/to/this/repo/shell/dev.sh
 
 Three commands become available:
 
-### `devenv [language] [release] [version] [ports]`
+### `devenv [language] [version] [ports] [public-ports]`
 
 Starts a new container with your current directory mounted at `/workspace`.
 
+`ports` are bound to `127.0.0.1` (localhost only). `public-ports` are bound to `0.0.0.0` (all interfaces — use when you need the port reachable from other machines or devices on the network).
+
 ```bash
 # Go environment (dev image)
-devenv golang 1.24 dev
+devenv golang dev
 
 # Go + Claude Code environment
-devenv golang-claude 1.24 dev
+devenv golang-claude dev
 
-# With extra exposed ports (comma-separated)
-devenv golang-claude 1.24 dev 8080,9090
+# Localhost-only ports (comma-separated)
+devenv golang-claude dev 3000,9090
+
+# All-interfaces ports
+devenv golang-claude dev "" 8080,8443
+
+# Mix: some localhost, some public
+devenv golang-claude dev 3000 8080
 ```
 
-Defaults: `language=golang`, `release=1.26`, `version=dev`
+Defaults: `language=golang`, `version=dev`
 
 For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.dockerdevenv/claude/`.
 
@@ -105,6 +113,8 @@ When using `golang-claude`, the following are passed into the container:
 | `$ANTHROPIC_API_KEY` | `$ANTHROPIC_API_KEY` |
 
 The project name is derived from the absolute path of your current directory (slashes replaced with dashes).
+
+> **Security note — `ANTHROPIC_API_KEY`:** Passing the key via environment variable exposes it in `docker inspect <container>`, in `/proc/<pid>/environ` of every process inside the container, and to any binary Claude spawns. Prefer `claude login` inside the container on first use — credentials are then stored in the mounted `~/.claude/` directory and persist across sessions. Reserve the env-var path for non-interactive or scripted runs where browser-based login is not possible.
 
 ## Debugger
 

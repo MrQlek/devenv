@@ -1,5 +1,4 @@
-ARG GO_RELEASE
-FROM golang:${GO_RELEASE}
+FROM golang:1.26.3@sha256:2d6c80227255c3112a4d08e67ba98e58efd3846daf15d9d7d4c389565d881b1a
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -38,10 +37,11 @@ USER dockergo
 
 ENV GOPATH=/home/dockergo/go
 ENV PATH=$PATH:/home/dockergo/go/bin
+ENV GIT_OPTIONAL_LOCKS=0
 
-RUN go install golang.org/x/tools/gopls@latest && \
-    go install github.com/go-delve/delve/cmd/dlv@latest && \
-    go install github.com/air-verse/air@latest
+RUN go install golang.org/x/tools/gopls@v0.22.0 && \
+    go install github.com/go-delve/delve/cmd/dlv@v1.26.3 && \
+    go install github.com/air-verse/air@v1.65.3
 
 RUN echo 'alias dlv-debug="dlv debug --headless --listen=:2345 --api-version=2"' >> /home/dockergo/.bashrc
 RUN echo 'alias fd=fdfind' >> /home/dockergo/.bashrc
