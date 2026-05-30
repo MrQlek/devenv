@@ -38,7 +38,8 @@ build-golang-claude:
 	docker build \
 	  --build-arg IMAGE_VERSION=$(IMAGE_VERSION) \
 	  -t golang-claude-dev:$(IMAGE_VERSION) \
-	  golang-claude/
+	  -f golang-claude/Dockerfile \
+	  .
 
 build-golang-claude-dev:
 	@if ! docker image inspect golang-dev:dev > /dev/null 2>&1; then \
@@ -49,4 +50,5 @@ build-golang-claude-dev:
 	docker build \
 	  --build-arg IMAGE_VERSION=dev \
 	  -t golang-claude-dev:dev \
-	  golang-claude/
+	  -f golang-claude/Dockerfile \
+	  .
