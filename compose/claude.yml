@@ -1,0 +1,7 @@
+services:
+  devenv:
+    volumes:
+      - ${CLAUDE_CONFIG_DIR}:/home/dockergo/.claude
+      - ${CLAUDE_CONFIG_FILE}:/home/dockergo/.claude.json
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

@@ -56,7 +56,7 @@ Source the shell helpers in your `.bashrc` or `.zshrc`:
 source /path/to/this/repo/shell/dev.sh
 ```
 
-Three commands become available:
+Four commands become available:
 
 ### `devenv [language] [version] [ports] [public-ports]`
 
@@ -102,6 +102,15 @@ devenv-exec golang go test ./...
 devenv-exec golang-claude claude --version
 ```
 
+### `devenv-inspect [language] [version] [ports] [public-ports] [--raw]`
+
+Prints the merged Docker Compose config plus the runtime flags that would be passed to `docker compose run`. Use it to verify what `devenv` would actually do without launching a container.
+
+```bash
+devenv-inspect golang dev
+devenv-inspect golang-claude dev 3000 --raw   # keep ${VAR} placeholders
+```
+
 ## Claude Code Configuration
 
 When using `golang-claude`, the following are passed into the container:
@@ -118,8 +127,21 @@ The project name is derived from the absolute path of your current directory (sl
 
 ## Debugger
 
-Port `2345` is exposed in all environments for remote debugging with Delve. A convenience alias is available inside the container:
+Port `2345` is exposed in Go environments for remote debugging with Delve. A convenience alias is available inside the container:
 
 ```bash
 dlv-debug   # equivalent to: dlv debug --headless --listen=:2345 --api-version=2
 ```
+
+## Adding a New Language
+
+The Compose layer stacks files instead of duplicating them. To add a new language `<lang>`:
+
+1. Create `compose/<lang>.yml` with only language-specific bits (image overrides, caches, debugger port, extra caps, etc.). Service name must be `devenv`.
+2. Build a `<lang>-dev` image (Dockerfile under `<lang>/`).
+3. `devenv <lang>` will stack `compose/base.yml` + `compose/<lang>.yml`.
+4. `devenv <lang>-claude` will additionally stack `compose/claude.yml`. The combined image must be named `<lang>-claude-dev`.
+
+If the language needs per-environment shell-side prep (e.g., creating cache dirs, prompting for config on first run), drop a file at `shell/lib/<lang>.sh` that defines `_devenv_lib_<name>_hook`. The hook is discovered automatically, receives the language string and project slug, and may write to any `_DEVENV_PREP_*` global. See `shell/lib/claude.sh` for the reference implementation.
+
+Optional `compose/<lang>-claude.yml` may exist for combo-specific overrides; it is sourced only when present.

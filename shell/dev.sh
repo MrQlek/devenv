@@ -5,59 +5,6 @@ if ! docker compose version &>/dev/null 2>&1; then
     echo "ERROR: 'docker compose' plugin not found. Install it: https://docs.docker.com/compose/install/"
 fi
 
-_devenv_resolve_claude_config() {
-    local project=$1
-    local language=$2
-    local base_dir="${_DEVENV_USER_HOME}/.dockerdevenv/claude"
-    local project_dir="${base_dir}/projects/${project}"
-    local lang_dir="${base_dir}/languages/${language}"
-    local shared_dir="${base_dir}/shared"
-
-    if [ -e "$project_dir" ]; then
-        echo "$project_dir"
-        return
-    fi
-
-    echo "No Claude config found for project: $project" >&2
-    echo "  1) Project-specific config" >&2
-    echo "  2) Shared per-language ($language)" >&2
-    echo "  3) Shared globally" >&2
-    printf "Choose [1/2/3]: " >&2
-    read -r choice
-
-    mkdir -p "${base_dir}/projects"
-    chmod 700 "$base_dir" "${base_dir}/projects"
-
-    case "$choice" in
-        2)
-            echo "WARNING: Any setting, MCP server, or hook written by Claude this session will persist into all other projects using the per-language ($language) scope." >&2
-            mkdir -p "$lang_dir"
-            chmod 700 "${base_dir}/languages" "$lang_dir"
-            touch "${lang_dir}.json"
-            chmod 600 "${lang_dir}.json"
-            ln -s "$lang_dir" "$project_dir"
-            ln -sf "${lang_dir}.json" "${project_dir}.json"
-            ;;
-        3)
-            echo "WARNING: Any setting, MCP server, or hook written by Claude this session will persist into all other projects using the global shared scope." >&2
-            mkdir -p "$shared_dir"
-            chmod 700 "$shared_dir"
-            touch "${shared_dir}.json"
-            chmod 600 "${shared_dir}.json"
-            ln -s "$shared_dir" "$project_dir"
-            ln -sf "${shared_dir}.json" "${project_dir}.json"
-            ;;
-        *)
-            mkdir -p "$project_dir"
-            chmod 700 "$project_dir"
-            touch "${project_dir}.json"
-            chmod 600 "${project_dir}.json"
-            ;;
-    esac
-
-    echo "$project_dir"
-}
-
 _devenv_check_docker() {
     if ! docker info &>/dev/null 2>&1; then
         echo "ERROR: Docker is not accessible without sudo. Set up rootless Docker instead: https://docs.docker.com/engine/security/rootless/"
@@ -86,25 +33,153 @@ _devenv_validate_ports() {
     fi
 }
 
+# Sources shell/lib/*.sh fresh on every invocation.
+# Aborts if any function matching the hook pattern already exists — refuses to
+# overwrite something we didn't define this call.
+_devenv_load_libs() {
+    [ -d "$_DEVENV_DIR/shell/lib" ] || return 0
+
+    local pre_existing
+    pre_existing=$(compgen -A function 2>/dev/null | grep -E '^_devenv_lib_[a-z0-9_]+_hook$' || true)
+    if [ -n "$pre_existing" ]; then
+        echo "ERROR: dev.sh: pre-existing functions match the hook pattern '_devenv_lib_*_hook':" >&2
+        echo "$pre_existing" | sed 's/^/  - /' >&2
+        echo "Refusing to source shell/lib/ to avoid running unintended code." >&2
+        echo "Unset them ('unset -f <name>') and retry." >&2
+        return 1
+    fi
+
+    local lib
+    for lib in "$_DEVENV_DIR/shell/lib"/*.sh; do
+        [ -f "$lib" ] && source "$lib"
+    done
+}
+
+_devenv_unload_libs() {
+    local fn
+    for fn in $(compgen -A function 2>/dev/null | grep -E '^_devenv_lib_[a-z0-9_]+_hook$' || true); do
+        unset -f "$fn"
+    done
+}
+
+_devenv_resolve_compose_files() {
+    local language=$1
+    local -n _out_files=$2
+    local -n _out_image=$3
+    local base_dir="$_DEVENV_DIR/compose"
+
+    _out_files=("$base_dir/base.yml")
+
+    local base_lang="$language"
+    local with_claude=0
+    if [[ "$language" == *-claude ]]; then
+        base_lang="${language%-claude}"
+        with_claude=1
+    fi
+
+    local lang_file="$base_dir/${base_lang}.yml"
+    if [ ! -f "$lang_file" ]; then
+        echo "ERROR: no compose file found for language '$base_lang' (looked for $lang_file)"
+        return 1
+    fi
+    _out_files+=("$lang_file")
+
+    if [ "$with_claude" -eq 1 ]; then
+        _out_files+=("$base_dir/claude.yml")
+        local combo_file="$base_dir/${language}.yml"
+        [ -f "$combo_file" ] && _out_files+=("$combo_file")
+        _out_image="${base_lang}-claude-dev"
+    else
+        _out_image="${base_lang}-dev"
+    fi
+}
+
 _devenv_run_compose() {
     local user_home=$1
     local image_version=$2
     local compose_project=$3
-    local compose_file=$4
-    local claude_dir=$5
-    local claude_file=$6
-    shift 6
+    local devenv_image=$4
+    local devenv_lang=$5
+    local claude_dir=$6
+    local claude_file=$7
+    shift 7
+
+    local -a compose_files=()
+    while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+        compose_files+=("$1")
+        shift
+    done
+    if [ $# -eq 0 ]; then
+        echo "ERROR: _devenv_run_compose: missing '--' separator between compose files and docker compose args"
+        return 1
+    fi
+    shift  # consume "--"
 
     _devenv_check_docker || return 1
 
-    local env_prefix=""
-    env_prefix="$env_prefix _DEVENV_USER_HOME=$user_home"
-    env_prefix="$env_prefix IMAGE_VERSION=$image_version"
-    env_prefix="$env_prefix COMPOSE_PROJECT_NAME=$compose_project"
-    env_prefix="$env_prefix CLAUDE_CONFIG_DIR=$claude_dir"
-    env_prefix="$env_prefix CLAUDE_CONFIG_FILE=$claude_file"
+    local -a file_args=()
+    for f in "${compose_files[@]}"; do
+        file_args+=(-f "$f")
+    done
 
-    env $env_prefix docker compose -f "$compose_file" "$@"
+    env \
+        _DEVENV_USER_HOME="$user_home" \
+        IMAGE_VERSION="$image_version" \
+        COMPOSE_PROJECT_NAME="$compose_project" \
+        DEVENV_IMAGE="$devenv_image" \
+        DEVENV_LANG="$devenv_lang" \
+        CLAUDE_CONFIG_DIR="$claude_dir" \
+        CLAUDE_CONFIG_FILE="$claude_file" \
+        docker compose "${file_args[@]}" "$@"
+}
+
+# Outputs via _DEVENV_PREP_* globals — too many return values for namerefs.
+# Callers must read the globals immediately after invocation.
+_devenv_prepare() {
+    local language=$1
+    local ports=$2
+    local public_ports=$3
+
+    _devenv_validate_language "$language" || return 1
+    _devenv_validate_ports "$ports" || return 1
+    _devenv_validate_ports "$public_ports" || return 1
+    _devenv_load_libs || return 1
+
+    _DEVENV_PREP_PROJECT=$(pwd | sed 's/\//-/g' | sed 's/^-//')
+    _DEVENV_PREP_CONTAINER_NAME="devenv-${_DEVENV_PREP_PROJECT}-${language}"
+
+    _DEVENV_PREP_COMPOSE_FILES=()
+    _DEVENV_PREP_IMAGE=""
+    _devenv_resolve_compose_files "$language" _DEVENV_PREP_COMPOSE_FILES _DEVENV_PREP_IMAGE || return 1
+
+    _DEVENV_PREP_CLAUDE_DIR=""
+    _DEVENV_PREP_CLAUDE_FILE=""
+
+    local hook
+    for hook in $(compgen -A function 2>/dev/null | grep -E '^_devenv_lib_[a-z0-9_]+_hook$' || true); do
+        "$hook" "$language" "$_DEVENV_PREP_PROJECT" || return 1
+    done
+
+    _DEVENV_PREP_PORT_ARGS=""
+    if [ -n "$ports" ]; then
+        IFS=',' read -ra port_list <<< "$ports"
+        for port in "${port_list[@]}"; do
+            _DEVENV_PREP_PORT_ARGS="$_DEVENV_PREP_PORT_ARGS -p 127.0.0.1:$port:$port"
+        done
+    fi
+    if [ -n "$public_ports" ]; then
+        IFS=',' read -ra port_list <<< "$public_ports"
+        for port in "${port_list[@]}"; do
+            _DEVENV_PREP_PORT_ARGS="$_DEVENV_PREP_PORT_ARGS -p 0.0.0.0:$port:$port"
+        done
+    fi
+
+    _DEVENV_PREP_GIT_MOUNT=""
+    if [ -e "$(pwd)/.git" ]; then
+        _DEVENV_PREP_GIT_MOUNT="-v $(pwd)/.git:/workspace/.git:ro"
+    fi
+
+    _devenv_unload_libs
 }
 
 devenv() {
@@ -113,61 +188,72 @@ devenv() {
     local ports=${3:-}
     local public_ports=${4:-}
 
-    _devenv_validate_language "$language" || return 1
-
-    local project=$(pwd | sed 's/\//-/g' | sed 's/^-//')
-    local container_name="devenv-${project}-${language}"
-    local compose_file="$_DEVENV_DIR/compose/docker-compose.${language}.yml"
-
-    if [ ! -f "$compose_file" ]; then
-        echo "ERROR: no compose file found for language '$language' (looked for $compose_file)"
-        return 1
-    fi
-
-    local claude_dir=""
-    local claude_file=""
-    if [[ "$language" == *"claude"* ]]; then
-        claude_dir=$(_devenv_resolve_claude_config "$project" "$language")
-        claude_file="${claude_dir}.json"
-    fi
-
-    _devenv_validate_ports "$ports" || return 1
-    _devenv_validate_ports "$public_ports" || return 1
-
-    local port_args=""
-    if [ -n "$ports" ]; then
-        IFS=',' read -ra port_list <<< "$ports"
-        for port in "${port_list[@]}"; do
-            port_args="$port_args -p 127.0.0.1:$port:$port"
-        done
-    fi
-    if [ -n "$public_ports" ]; then
-        IFS=',' read -ra port_list <<< "$public_ports"
-        for port in "${port_list[@]}"; do
-            port_args="$port_args -p 0.0.0.0:$port:$port"
-        done
-    fi
-
-    local git_mount=""
-    if [ -e "$(pwd)/.git" ]; then
-        git_mount="-v $(pwd)/.git:/workspace/.git:ro"
-    fi
+    _devenv_prepare "$language" "$ports" "$public_ports" || return 1
 
     _devenv_run_compose \
         "$_DEVENV_USER_HOME" \
         "$version" \
-        "$project" \
-        "$compose_file" \
-        "$claude_dir" \
-        "$claude_file" \
+        "$_DEVENV_PREP_PROJECT" \
+        "$_DEVENV_PREP_IMAGE" \
+        "$language" \
+        "$_DEVENV_PREP_CLAUDE_DIR" \
+        "$_DEVENV_PREP_CLAUDE_FILE" \
+        "${_DEVENV_PREP_COMPOSE_FILES[@]}" \
+        -- \
         run \
-        --name "$container_name" \
+        --name "$_DEVENV_PREP_CONTAINER_NAME" \
         --rm \
-        $port_args \
+        $_DEVENV_PREP_PORT_ARGS \
         -v $(pwd):/workspace \
-        $git_mount \
-        $language \
+        $_DEVENV_PREP_GIT_MOUNT \
+        devenv \
         bash
+}
+
+devenv-inspect() {
+    local raw=0
+    local -a positional=()
+    local a
+    for a in "$@"; do
+        if [ "$a" = "--raw" ]; then
+            raw=1
+        else
+            positional+=("$a")
+        fi
+    done
+    set -- "${positional[@]}"
+
+    local language=${1:-golang}
+    local version=${2:-dev}
+    local ports=${3:-}
+    local public_ports=${4:-}
+
+    _devenv_prepare "$language" "$ports" "$public_ports" || return 1
+
+    local -a config_args=(config)
+    [ "$raw" -eq 1 ] && config_args+=(--no-interpolate)
+
+    echo "# === Merged compose config ==="
+    _devenv_run_compose \
+        "$_DEVENV_USER_HOME" \
+        "$version" \
+        "$_DEVENV_PREP_PROJECT" \
+        "$_DEVENV_PREP_IMAGE" \
+        "$language" \
+        "$_DEVENV_PREP_CLAUDE_DIR" \
+        "$_DEVENV_PREP_CLAUDE_FILE" \
+        "${_DEVENV_PREP_COMPOSE_FILES[@]}" \
+        -- \
+        "${config_args[@]}"
+
+    echo
+    echo "# === Runtime additions (passed to 'docker compose run') ==="
+    echo "container name: $_DEVENV_PREP_CONTAINER_NAME"
+    echo "service:        devenv"
+    echo "command:        bash"
+    echo "extra ports:    ${_DEVENV_PREP_PORT_ARGS:- (none)}"
+    echo "workspace:      -v $(pwd):/workspace"
+    [ -n "$_DEVENV_PREP_GIT_MOUNT" ] && echo "git mount:      $_DEVENV_PREP_GIT_MOUNT"
 }
 
 devenv-connect() {

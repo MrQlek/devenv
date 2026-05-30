@@ -5,7 +5,7 @@ FROM golang-dev:${IMAGE_VERSION}
 USER dockergo
 
 RUN curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh \
-    && echo "b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830  /tmp/claude-install.sh" | sha256sum -c \
+    && echo "005ec1a937f32dfbb74f9e810287bcb12cba2d5cae4c9277aa8c6364adbf1787 /tmp/claude-install.sh" | sha256sum -c \
     && bash /tmp/claude-install.sh 2.1.150 \
     && rm /tmp/claude-install.sh
 
