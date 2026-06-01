@@ -2,6 +2,7 @@ services:
   devenv:
     image: ${DEVENV_IMAGE}:${IMAGE_VERSION:-dev}
     container_name: devenv-${COMPOSE_PROJECT_NAME}-${DEVENV_LANG}
+    hostname: devenv-${DEVENV_LANG}
     pull_policy: never
     init: true
     working_dir: /workspace

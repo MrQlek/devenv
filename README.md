@@ -11,7 +11,7 @@ Two Docker image variants are available:
 | `devenv-image-golang` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
 | `devenv-image-golang-claude` | Extends `devenv-image-golang` with Claude Code CLI pre-installed |
 
-Containers run as a non-root user (`dockergo`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.devenv/go-mod/<image-version>/`.
+Containers run as a non-root user (`devuser`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.devenv/go-mod/<image-version>/`.
 
 ## Requirements
 
@@ -130,8 +130,8 @@ When using `golang-claude`, the following are passed into the container:
 
 | Host path | Container path |
 |---|---|
-| `~/.devenv/claude/projects/<project>/` | `/home/dockergo/.claude/` |
-| `~/.devenv/claude/projects/<project>.json` | `/home/dockergo/.claude.json` |
+| `~/.devenv/claude/projects/<project>/` | `/home/devuser/.claude/` |
+| `~/.devenv/claude/projects/<project>.json` | `/home/devuser/.claude.json` |
 | `$ANTHROPIC_API_KEY` | `$ANTHROPIC_API_KEY` |
 
 The project name is derived from the absolute path of your current directory (slashes replaced with dashes).

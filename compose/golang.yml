@@ -3,5 +3,5 @@ services:
     ports:
       - "127.0.0.1:2345:2345"
     volumes:
-      - ${_DEVENV_USER_HOME}/.devenv/go-mod/${IMAGE_VERSION:-dev}:/home/dockergo/go/pkg/mod
-      - ${_DEVENV_USER_HOME}/.devenv/go-cache/${IMAGE_VERSION:-dev}:/home/dockergo/.cache/go-build
+      - ${_DEVENV_USER_HOME}/.devenv/go-mod/${IMAGE_VERSION:-dev}:/home/devuser/go/pkg/mod
+      - ${_DEVENV_USER_HOME}/.devenv/go-cache/${IMAGE_VERSION:-dev}:/home/devuser/.cache/go-build
