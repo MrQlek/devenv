@@ -12,8 +12,8 @@ usage() {
 
 setup_golang() {
     local version=$1
-    mkdir -p "$DEVENV_USER_HOME/.dockerdevenv/go-mod/$version"
-    mkdir -p "$DEVENV_USER_HOME/.dockerdevenv/go-cache/$version"
+    mkdir -p "$DEVENV_USER_HOME/.devenv/go-mod/$version"
+    mkdir -p "$DEVENV_USER_HOME/.devenv/go-cache/$version"
     echo "golang $version environment ready"
 }
 

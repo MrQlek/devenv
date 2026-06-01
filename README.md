@@ -8,10 +8,10 @@ Two Docker image variants are available:
 
 | Image | Description |
 |---|---|
-| `golang-dev` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
-| `golang-claude-dev` | Extends `golang-dev` with Claude Code CLI pre-installed |
+| `devenv-image-golang` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
+| `devenv-image-golang-claude` | Extends `devenv-image-golang` with Claude Code CLI pre-installed |
 
-Containers run as a non-root user (`dockergo`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.dockerdevenv/go-mod/<image-version>/`.
+Containers run as a non-root user (`dockergo`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.devenv/go-mod/<image-version>/`.
 
 ## Requirements
 
@@ -24,8 +24,8 @@ Containers run as a non-root user (`dockergo`) matching your host UID/GID. The G
 >
 > | Image | Tag namespace | Example |
 > |---|---|---|
-> | `golang-dev` | `golang/*` | `golang/v1.0.0` |
-> | `golang-claude-dev` | `golang-claude/*` | `golang-claude/v1.0.0` |
+> | `devenv-image-golang` | `golang/*` | `golang/v1.0.0` |
+> | `devenv-image-golang-claude` | `golang-claude/*` | `golang-claude/v1.0.0` |
 
 ### Go dev image
 
@@ -39,18 +39,20 @@ make build-golang-dev
 
 ### Go + Claude Code image
 
-The claude image is versioned independently from the go base. `build-golang-claude` requires a `golang-claude/*` tag on HEAD, and uses the nearest `golang/*` tag reachable from HEAD (`git describe --abbrev=0`) as its base — so bumping claude does not require re-tagging or rebuilding `golang-dev`.
+The claude image is versioned independently from the go base. `build-golang-claude` requires a `golang-claude/*` tag on HEAD, and uses the nearest `golang/*` tag reachable from HEAD (`git describe --abbrev=0`) as its base — so bumping claude does not require re-tagging or rebuilding `devenv-image-golang`.
 
 ```bash
 # Production (requires golang-claude/* tag on HEAD;
 # uses the most recent golang/* tag in history as base)
 make build-golang-claude
 
-# Local dev (requires golang-dev:dev base image)
+# Local dev (defaults to devenv-image-golang:dev as base;
+# override with DEV_BASE=<tag> to pin a specific base version)
 make build-golang-claude-dev
+make build-golang-claude-dev DEV_BASE=v1.0.0
 ```
 
-The resolved base image (`golang-dev:<golang-tag>`) must already exist locally — build it from the relevant commit if not.
+The resolved base image (`devenv-image-golang:<tag>`) must already exist locally — build it from the relevant commit if not.
 
 List available tags:
 
@@ -94,7 +96,7 @@ devenv golang-claude dev 3000 8080
 
 Defaults: `language=golang`, `version=dev`
 
-For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.dockerdevenv/claude/`.
+For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.devenv/claude/`.
 
 ### `devenv-connect [language]`
 
@@ -128,8 +130,8 @@ When using `golang-claude`, the following are passed into the container:
 
 | Host path | Container path |
 |---|---|
-| `~/.dockerdevenv/claude/projects/<project>/` | `/home/dockergo/.claude/` |
-| `~/.dockerdevenv/claude/projects/<project>.json` | `/home/dockergo/.claude.json` |
+| `~/.devenv/claude/projects/<project>/` | `/home/dockergo/.claude/` |
+| `~/.devenv/claude/projects/<project>.json` | `/home/dockergo/.claude.json` |
 | `$ANTHROPIC_API_KEY` | `$ANTHROPIC_API_KEY` |
 
 The project name is derived from the absolute path of your current directory (slashes replaced with dashes).
@@ -149,9 +151,9 @@ dlv-debug   # equivalent to: dlv debug --headless --listen=:2345 --api-version=2
 The Compose layer stacks files instead of duplicating them. To add a new language `<lang>`:
 
 1. Create `compose/<lang>.yml` with only language-specific bits (image overrides, caches, debugger port, extra caps, etc.). Service name must be `devenv`.
-2. Build a `<lang>-dev` image (Dockerfile under `<lang>/`).
+2. Build a `devenv-image-<lang>` image (Dockerfile under `<lang>/`).
 3. `devenv <lang>` will stack `compose/base.yml` + `compose/<lang>.yml`.
-4. `devenv <lang>-claude` will additionally stack `compose/claude.yml`. The combined image must be named `<lang>-claude-dev`.
+4. `devenv <lang>-claude` will additionally stack `compose/claude.yml`. The combined image must be named `devenv-image-<lang>-claude`.
 
 If the language needs per-environment shell-side prep (e.g., creating cache dirs, prompting for config on first run), drop a file at `shell/lib/<lang>.sh` that defines `_devenv_lib_<name>_hook`. The hook is discovered automatically, receives the language string and project slug, and may write to any `_DEVENV_PREP_*` global. See `shell/lib/claude.sh` for the reference implementation.
 

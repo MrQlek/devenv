@@ -1,6 +1,6 @@
 ARG BASE_VERSION=dev
 
-FROM golang-dev:${BASE_VERSION}
+FROM devenv-image-golang:${BASE_VERSION}
 
 USER dockergo
 

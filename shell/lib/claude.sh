@@ -1,7 +1,7 @@
 _devenv_resolve_claude_config() {
     local project=$1
     local language=$2
-    local base_dir="${_DEVENV_USER_HOME}/.dockerdevenv/claude"
+    local base_dir="${_DEVENV_USER_HOME}/.devenv/claude"
     local project_dir="${base_dir}/projects/${project}"
     local lang_dir="${base_dir}/languages/${language}"
     local shared_dir="${base_dir}/shared"

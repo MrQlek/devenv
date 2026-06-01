@@ -88,9 +88,9 @@ _devenv_resolve_compose_files() {
         _out_files+=("$base_dir/claude.yml")
         local combo_file="$base_dir/${language}.yml"
         [ -f "$combo_file" ] && _out_files+=("$combo_file")
-        _out_image="${base_lang}-claude-dev"
+        _out_image="devenv-image-${base_lang}-claude"
     else
-        _out_image="${base_lang}-dev"
+        _out_image="devenv-image-${base_lang}"
     fi
 }
 
