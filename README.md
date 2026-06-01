@@ -20,12 +20,17 @@ Containers run as a non-root user (`dockergo`) matching your host UID/GID. The G
 
 ## Building Images
 
-> **Note:** Tagged builds require a git tag matching `golang/*` on the current commit (e.g. `golang/v1.0.0`). For local development, use the `-dev` variants which skip this requirement.
+> **Note:** Each image has its own tag namespace. Tagged builds require the matching tag to be on the current commit; `--exact-match` enforces this. For local development, use the `-dev` variants which skip the tag requirement.
+>
+> | Image | Tag namespace | Example |
+> |---|---|---|
+> | `golang-dev` | `golang/*` | `golang/v1.0.0` |
+> | `golang-claude-dev` | `golang-claude/*` | `golang-claude/v1.0.0` |
 
 ### Go dev image
 
 ```bash
-# Production (requires golang/* git tag)
+# Production (requires golang/* tag on HEAD)
 make build-golang
 
 # Local dev
@@ -34,18 +39,24 @@ make build-golang-dev
 
 ### Go + Claude Code image
 
+The claude image is versioned independently from the go base. `build-golang-claude` requires a `golang-claude/*` tag on HEAD, and uses the nearest `golang/*` tag reachable from HEAD (`git describe --abbrev=0`) as its base — so bumping claude does not require re-tagging or rebuilding `golang-dev`.
+
 ```bash
-# Production (requires golang-dev:<tag> base image)
+# Production (requires golang-claude/* tag on HEAD;
+# uses the most recent golang/* tag in history as base)
 make build-golang-claude
 
 # Local dev (requires golang-dev:dev base image)
 make build-golang-claude-dev
 ```
 
-List available golang tags:
+The resolved base image (`golang-dev:<golang-tag>`) must already exist locally — build it from the relevant commit if not.
+
+List available tags:
 
 ```bash
 make list-golang-tags
+make list-golang-claude-tags
 ```
 
 ## Usage

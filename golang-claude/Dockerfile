@@ -1,6 +1,6 @@
-ARG IMAGE_VERSION=dev
+ARG BASE_VERSION=dev
 
-FROM golang-dev:${IMAGE_VERSION}
+FROM golang-dev:${BASE_VERSION}
 
 USER dockergo
 
