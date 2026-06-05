@@ -225,6 +225,7 @@ devenv() {
         run \
         --name "$_DEVENV_PREP_CONTAINER_NAME" \
         --rm \
+        --service-ports \
         "${_DEVENV_PREP_PORT_ARGS[@]}" \
         -v "$(pwd):/workspace" \
         "${_DEVENV_PREP_GIT_MOUNT[@]}" \
@@ -304,3 +305,11 @@ devenv-exec() {
 }
 
 [ -f "$_DEVENV_DIR/shell/completion.sh" ] && source "$_DEVENV_DIR/shell/completion.sh"
+
+# Optional user-facing helper scripts. Skip with DEVENV_SKIP_EXTRAS=1.
+if [ -z "${DEVENV_SKIP_EXTRAS:-}" ] && [ -d "$_DEVENV_DIR/scripts" ]; then
+    for _devenv_extra in "$_DEVENV_DIR/scripts"/*.sh; do
+        [ -f "$_devenv_extra" ] && source "$_devenv_extra"
+    done
+    unset _devenv_extra
+fi

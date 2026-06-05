@@ -157,10 +157,14 @@ The project name is derived from the absolute path of your current directory (sl
 
 ## Debugger
 
-Port `2345` is exposed in Go environments for remote debugging with Delve. A convenience alias is available inside the container:
+Per-language debugger setup (Delve port, IDE config, helper scripts) lives in [`docs/debugger-setup.md`](docs/debugger-setup.md).
+
+## Opting out of helper scripts
+
+Sourcing `shell/devenv.sh` also auto-sources every file under `scripts/` (e.g. `devenv-vscode-debug-golang`). To skip them, set `DEVENV_SKIP_EXTRAS=1` before sourcing:
 
 ```bash
-dlv-debug   # equivalent to: dlv debug --headless --listen=:2345 --api-version=2
+DEVENV_SKIP_EXTRAS=1 source /path/to/this/repo/shell/devenv.sh
 ```
 
 ## Adding a New Language or Addon
