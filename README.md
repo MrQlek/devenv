@@ -100,6 +100,21 @@ Defaults: `language=golang`, `version=dev`
 
 For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.devenv/claude/`.
 
+#### Hiding files from the container
+
+The container always has `/workspace/.devenv_exclude` mounted as an in-memory tmpfs. Anything you place under `.devenv_exclude/` on the host stays on the host — the container sees the directory as empty. Useful for API keys, SSH credentials, or anything else you don't want a coding agent to read.
+
+Organize secrets under subdirectories if you need structure:
+
+```
+.devenv_exclude/
+├── aws/credentials
+├── env-prod
+└── ssh/id_rsa
+```
+
+To mask a path that's not already inside `.devenv_exclude/` (e.g. a `.env` at the workspace root), move or symlink it under `.devenv_exclude/`. Add `.devenv_exclude/` to your `.gitignore`.
+
 ### `devenv-connect [language]`
 
 Opens an additional bash shell in a running container.
