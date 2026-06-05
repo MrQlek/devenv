@@ -56,6 +56,7 @@ _devenv_resolve_claude_config() {
 _devenv_lib_claude_hook() {
     local language=$1
     local project=$2
+    local version=$3
     [[ "$language" == *-claude ]] || return 0
     _DEVENV_PREP_CLAUDE_DIR=$(_devenv_resolve_claude_config "$project" "$language")
     _DEVENV_PREP_CLAUDE_FILE="${_DEVENV_PREP_CLAUDE_DIR}.json"

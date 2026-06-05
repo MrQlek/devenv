@@ -33,6 +33,15 @@ _devenv_validate_ports() {
     fi
 }
 
+_devenv_project_slug() {
+    pwd | sed 's|/|-|g; s/^-//'
+}
+
+_devenv_container_name() {
+    local language=$1
+    printf 'devenv-%s-%s\n' "$(_devenv_project_slug)" "$language"
+}
+
 # Sources shell/lib/*.sh fresh on every invocation.
 # Aborts if any function matching the hook pattern already exists — refuses to
 # overwrite something we didn't define this call.
@@ -62,35 +71,47 @@ _devenv_unload_libs() {
     done
 }
 
+# Parses "<lang>" or "<lang>-<addon>" into separate vars via namerefs.
+_devenv_split_language() {
+    local input=$1
+    local -n _out_lang=$2
+    local -n _out_addon=$3
+    if [[ "$input" == *-* ]]; then
+        _out_lang="${input%-*}"
+        _out_addon="${input##*-}"
+    else
+        _out_lang="$input"
+        _out_addon=""
+    fi
+}
+
 _devenv_resolve_compose_files() {
     local language=$1
     local -n _out_files=$2
     local -n _out_image=$3
     local base_dir="$_DEVENV_DIR/compose"
 
-    _out_files=("$base_dir/base.yml")
-
-    local base_lang="$language"
-    local with_claude=0
-    if [[ "$language" == *-claude ]]; then
-        base_lang="${language%-claude}"
-        with_claude=1
-    fi
+    local base_lang addon
+    _devenv_split_language "$language" base_lang addon
 
     local lang_file="$base_dir/${base_lang}.yml"
     if [ ! -f "$lang_file" ]; then
-        echo "ERROR: no compose file found for language '$base_lang' (looked for $lang_file)"
+        echo "ERROR: no compose file for language '$base_lang' (looked for $lang_file)"
         return 1
     fi
-    _out_files+=("$lang_file")
+    _out_files=("$base_dir/base.yml" "$lang_file")
+    _out_image="devenv-image-${base_lang}"
 
-    if [ "$with_claude" -eq 1 ]; then
-        _out_files+=("$base_dir/claude.yml")
-        local combo_file="$base_dir/${language}.yml"
+    if [ -n "$addon" ]; then
+        local addon_file="$base_dir/${addon}.yml"
+        if [ ! -f "$addon_file" ]; then
+            echo "ERROR: no compose file for addon '$addon' (looked for $addon_file)"
+            return 1
+        fi
+        _out_files+=("$addon_file")
+        local combo_file="$base_dir/${base_lang}-${addon}.yml"
         [ -f "$combo_file" ] && _out_files+=("$combo_file")
-        _out_image="devenv-image-${base_lang}-claude"
-    else
-        _out_image="devenv-image-${base_lang}"
+        _out_image="devenv-image-${base_lang}-${addon}"
     fi
 }
 
@@ -137,16 +158,17 @@ _devenv_run_compose() {
 # Callers must read the globals immediately after invocation.
 _devenv_prepare() {
     local language=$1
-    local ports=$2
-    local public_ports=$3
+    local version=$2
+    local ports=$3
+    local public_ports=$4
 
     _devenv_validate_language "$language" || return 1
     _devenv_validate_ports "$ports" || return 1
     _devenv_validate_ports "$public_ports" || return 1
     _devenv_load_libs || return 1
 
-    _DEVENV_PREP_PROJECT=$(pwd | sed 's/\//-/g' | sed 's/^-//')
-    _DEVENV_PREP_CONTAINER_NAME="devenv-${_DEVENV_PREP_PROJECT}-${language}"
+    _DEVENV_PREP_PROJECT=$(_devenv_project_slug)
+    _DEVENV_PREP_CONTAINER_NAME=$(_devenv_container_name "$language")
 
     _DEVENV_PREP_COMPOSE_FILES=()
     _DEVENV_PREP_IMAGE=""
@@ -157,26 +179,26 @@ _devenv_prepare() {
 
     local hook
     for hook in $(compgen -A function 2>/dev/null | grep -E '^_devenv_lib_[a-z0-9_]+_hook$' || true); do
-        "$hook" "$language" "$_DEVENV_PREP_PROJECT" || return 1
+        "$hook" "$language" "$_DEVENV_PREP_PROJECT" "$version" || return 1
     done
 
-    _DEVENV_PREP_PORT_ARGS=""
+    _DEVENV_PREP_PORT_ARGS=()
     if [ -n "$ports" ]; then
         IFS=',' read -ra port_list <<< "$ports"
         for port in "${port_list[@]}"; do
-            _DEVENV_PREP_PORT_ARGS="$_DEVENV_PREP_PORT_ARGS -p 127.0.0.1:$port:$port"
+            _DEVENV_PREP_PORT_ARGS+=(-p "127.0.0.1:$port:$port")
         done
     fi
     if [ -n "$public_ports" ]; then
         IFS=',' read -ra port_list <<< "$public_ports"
         for port in "${port_list[@]}"; do
-            _DEVENV_PREP_PORT_ARGS="$_DEVENV_PREP_PORT_ARGS -p 0.0.0.0:$port:$port"
+            _DEVENV_PREP_PORT_ARGS+=(-p "0.0.0.0:$port:$port")
         done
     fi
 
-    _DEVENV_PREP_GIT_MOUNT=""
+    _DEVENV_PREP_GIT_MOUNT=()
     if [ -e "$(pwd)/.git" ]; then
-        _DEVENV_PREP_GIT_MOUNT="-v $(pwd)/.git:/workspace/.git:ro"
+        _DEVENV_PREP_GIT_MOUNT=(-v "$(pwd)/.git:/workspace/.git:ro")
     fi
 
     _devenv_unload_libs
@@ -188,7 +210,7 @@ devenv() {
     local ports=${3:-}
     local public_ports=${4:-}
 
-    _devenv_prepare "$language" "$ports" "$public_ports" || return 1
+    _devenv_prepare "$language" "$version" "$ports" "$public_ports" || return 1
 
     _devenv_run_compose \
         "$_DEVENV_USER_HOME" \
@@ -203,9 +225,9 @@ devenv() {
         run \
         --name "$_DEVENV_PREP_CONTAINER_NAME" \
         --rm \
-        $_DEVENV_PREP_PORT_ARGS \
-        -v $(pwd):/workspace \
-        $_DEVENV_PREP_GIT_MOUNT \
+        "${_DEVENV_PREP_PORT_ARGS[@]}" \
+        -v "$(pwd):/workspace" \
+        "${_DEVENV_PREP_GIT_MOUNT[@]}" \
         devenv \
         bash
 }
@@ -228,7 +250,7 @@ devenv-inspect() {
     local ports=${3:-}
     local public_ports=${4:-}
 
-    _devenv_prepare "$language" "$ports" "$public_ports" || return 1
+    _devenv_prepare "$language" "$version" "$ports" "$public_ports" || return 1
 
     local -a config_args=(config)
     [ "$raw" -eq 1 ] && config_args+=(--no-interpolate)
@@ -251,37 +273,34 @@ devenv-inspect() {
     echo "container name: $_DEVENV_PREP_CONTAINER_NAME"
     echo "service:        devenv"
     echo "command:        bash"
-    echo "extra ports:    ${_DEVENV_PREP_PORT_ARGS:- (none)}"
+    if [ ${#_DEVENV_PREP_PORT_ARGS[@]} -gt 0 ]; then
+        echo "extra ports:    ${_DEVENV_PREP_PORT_ARGS[*]}"
+    else
+        echo "extra ports:    (none)"
+    fi
     echo "workspace:      -v $(pwd):/workspace"
-    [ -n "$_DEVENV_PREP_GIT_MOUNT" ] && echo "git mount:      $_DEVENV_PREP_GIT_MOUNT"
+    if [ ${#_DEVENV_PREP_GIT_MOUNT[@]} -gt 0 ]; then
+        echo "git mount:      ${_DEVENV_PREP_GIT_MOUNT[*]}"
+    fi
 }
 
 devenv-connect() {
     local language=${1:-golang}
-
     _devenv_validate_language "$language" || return 1
-
-    local project=$(pwd | sed 's/\//-/g' | sed 's/^-//')
-    local container_name="devenv-${project}-${language}"
-
     _devenv_check_docker || return 1
-    docker exec -it $container_name bash
+    docker exec -it "$(_devenv_container_name "$language")" bash
 }
 
 devenv-exec() {
     local language=${1:-golang}
-
     _devenv_validate_language "$language" || return 1
-
-    local project=$(pwd | sed 's/\//-/g' | sed 's/^-//')
-    local container_name="devenv-${project}-${language}"
     shift 1
-
     if [ $# -eq 0 ]; then
         echo "Usage: devenv-exec [language] <command> [args...]"
         return 1
     fi
-
     _devenv_check_docker || return 1
-    docker exec $container_name "$@"
+    docker exec "$(_devenv_container_name "$language")" "$@"
 }
+
+[ -f "$_DEVENV_DIR/shell/completion.sh" ] && source "$_DEVENV_DIR/shell/completion.sh"

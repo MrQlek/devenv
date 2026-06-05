@@ -66,8 +66,10 @@ make list-golang-claude-tags
 Source the shell helpers in your `.bashrc` or `.zshrc`:
 
 ```bash
-source /path/to/this/repo/shell/dev.sh
+source /path/to/this/repo/shell/devenv.sh
 ```
+
+Tab completion for `devenv`, `devenv-inspect`, `devenv-connect`, and `devenv-exec` is enabled automatically (bash and zsh). Language candidates are derived from your locally-built `devenv-image-*` images, so only buildable/runnable combos are offered.
 
 Four commands become available:
 
@@ -146,15 +148,23 @@ Port `2345` is exposed in Go environments for remote debugging with Delve. A con
 dlv-debug   # equivalent to: dlv debug --headless --listen=:2345 --api-version=2
 ```
 
-## Adding a New Language
+## Adding a New Language or Addon
 
-The Compose layer stacks files instead of duplicating them. To add a new language `<lang>`:
+The argument to `devenv` follows the convention `<lang>[-<addon>]` (e.g. `golang`, `golang-claude`). The Compose layer stacks files instead of duplicating them.
+
+### Add a new language `<lang>`
 
 1. Create `compose/<lang>.yml` with only language-specific bits (image overrides, caches, debugger port, extra caps, etc.). Service name must be `devenv`.
 2. Build a `devenv-image-<lang>` image (Dockerfile under `<lang>/`).
 3. `devenv <lang>` will stack `compose/base.yml` + `compose/<lang>.yml`.
-4. `devenv <lang>-claude` will additionally stack `compose/claude.yml`. The combined image must be named `devenv-image-<lang>-claude`.
 
-If the language needs per-environment shell-side prep (e.g., creating cache dirs, prompting for config on first run), drop a file at `shell/lib/<lang>.sh` that defines `_devenv_lib_<name>_hook`. The hook is discovered automatically, receives the language string and project slug, and may write to any `_DEVENV_PREP_*` global. See `shell/lib/claude.sh` for the reference implementation.
+### Add a new addon `<addon>` (e.g. `claude`, `codex`, ...)
 
-Optional `compose/<lang>-claude.yml` may exist for combo-specific overrides; it is sourced only when present.
+1. Create `compose/<addon>.yml` with only addon-specific bits (config mounts, env vars, etc.). Service name must be `devenv`. The addon name must not collide with any language name.
+2. Build a `devenv-image-<lang>-<addon>` image that extends `devenv-image-<lang>` with the addon installed.
+3. `devenv <lang>-<addon>` will stack `compose/base.yml` + `compose/<lang>.yml` + `compose/<addon>.yml`.
+
+### Optional pieces
+
+- `compose/<lang>-<addon>.yml` — combo-specific overrides; sourced only when present.
+- `shell/lib/<name>.sh` defining `_devenv_lib_<name>_hook` — for shell-side prep (cache dirs, first-run prompts). The hook is discovered automatically, receives `(language, project, version)`, and may write to any `_DEVENV_PREP_*` global. Hooks self-gate on the language string. See `shell/lib/golang.sh` (cache dir creation) and `shell/lib/claude.sh` (interactive config setup) for reference implementations.
