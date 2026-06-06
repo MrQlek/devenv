@@ -1,0 +1,8 @@
+services:
+  devenv:
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - ${_DEVENV_USER_HOME}/.devenv/uv-cache/${IMAGE_VERSION:-dev}:/home/devuser/.cache/uv
+      - ${_DEVENV_USER_HOME}/.devenv/uv-share/${IMAGE_VERSION:-dev}:/home/devuser/.local/share/uv
+      - ${_DEVENV_USER_HOME}/.devenv/uv-bin/${IMAGE_VERSION:-dev}:/home/devuser/.local/bin

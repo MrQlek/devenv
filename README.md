@@ -1,6 +1,6 @@
 # Docker Dev Env
 
-Reproducible, containerized development environments for Go projects, with optional Claude Code integration.
+Reproducible, containerized development environments for Go and Python projects, with optional Claude Code integration.
 
 ## Overview
 
@@ -10,8 +10,17 @@ Two Docker image variants are available:
 |---|---|
 | `devenv-image-golang` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
 | `devenv-image-golang-claude` | Extends `devenv-image-golang` with Claude Code CLI pre-installed |
+| `devenv-image-python` | Python 3.14 + uv + debugpy + ruff + mypy + dev tools (fzf, ripgrep, fd, jq, vim) |
 
-Containers run as a non-root user (`devuser`) matching your host UID/GID. The Go module cache is persisted across sessions via a named volume at `~/.devenv/go-mod/<image-version>/`.
+Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-language caches are persisted on the host under `~/.devenv/`:
+
+| Language | Host path | Purpose |
+|---|---|---|
+| Go | `~/.devenv/go-mod/<version>/` | Module cache |
+| Go | `~/.devenv/go-cache/<version>/` | Build cache |
+| Python | `~/.devenv/uv-cache/<version>/` | uv download cache (wheels/sdists) |
+| Python | `~/.devenv/uv-share/<version>/` | `uv tool install` environments |
+| Python | `~/.devenv/uv-bin/<version>/` | uv tool shims (`~/.local/bin`) |
 
 ## Requirements
 
@@ -26,6 +35,7 @@ Containers run as a non-root user (`devuser`) matching your host UID/GID. The Go
 > |---|---|---|
 > | `devenv-image-golang` | `golang/*` | `golang/v1.0.0` |
 > | `devenv-image-golang-claude` | `golang-claude/*` | `golang-claude/v1.0.0` |
+> | `devenv-image-python` | `python/*` | `python/v1.0.0` |
 
 ### Go dev image
 
@@ -35,6 +45,16 @@ make build-golang
 
 # Local dev
 make build-golang-dev
+```
+
+### Python dev image
+
+```bash
+# Production (requires python/* tag on HEAD)
+make build-python
+
+# Local dev
+make build-python-dev
 ```
 
 ### Go + Claude Code image
@@ -59,6 +79,7 @@ List available tags:
 ```bash
 make list-golang-tags
 make list-golang-claude-tags
+make list-python-tags
 ```
 
 ## Usage
@@ -86,8 +107,12 @@ devenv golang dev
 # Go + Claude Code environment
 devenv golang-claude dev
 
+# Python environment
+devenv python dev
+
 # Localhost-only ports (comma-separated)
 devenv golang-claude dev 3000,9090
+devenv python dev 8000,5678
 
 # All-interfaces ports
 devenv golang-claude dev "" 8080,8443
@@ -99,6 +124,8 @@ devenv golang-claude dev 3000 8080
 Defaults: `language=golang`, `version=dev`
 
 For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.devenv/claude/`.
+
+For `python`, project packages (`.venv`) are stored inside the workspace directory and persist naturally via the host mount. The uv download cache and tool installations are persisted under `~/.devenv/` (see the table above).
 
 #### Hiding files from the container
 
@@ -121,6 +148,7 @@ Opens an additional bash shell in a running container.
 
 ```bash
 devenv-connect golang-claude
+devenv-connect python
 ```
 
 ### `devenv-exec [language] <command> [args...]`
@@ -130,6 +158,7 @@ Runs a single command inside a running container.
 ```bash
 devenv-exec golang go test ./...
 devenv-exec golang-claude claude --version
+devenv-exec python uv run pytest
 ```
 
 ### `devenv-inspect [language] [version] [ports] [public-ports] [--raw]`
@@ -139,6 +168,7 @@ Prints the merged Docker Compose config plus the runtime flags that would be pas
 ```bash
 devenv-inspect golang dev
 devenv-inspect golang-claude dev 3000 --raw   # keep ${VAR} placeholders
+devenv-inspect python dev
 ```
 
 ## Claude Code Configuration
@@ -186,4 +216,4 @@ The argument to `devenv` follows the convention `<lang>[-<addon>]` (e.g. `golang
 ### Optional pieces
 
 - `compose/<lang>-<addon>.yml` — combo-specific overrides; sourced only when present.
-- `shell/lib/<name>.sh` defining `_devenv_lib_<name>_hook` — for shell-side prep (cache dirs, first-run prompts). The hook is discovered automatically, receives `(language, project, version)`, and may write to any `_DEVENV_PREP_*` global. Hooks self-gate on the language string. See `shell/lib/golang.sh` (cache dir creation) and `shell/lib/claude.sh` (interactive config setup) for reference implementations.
+- `shell/lib/<name>.sh` defining `_devenv_lib_<name>_hook` — for shell-side prep (cache dirs, first-run prompts). The hook is discovered automatically, receives `(language, project, version)`, and may write to any `_DEVENV_PREP_*` global. Hooks self-gate on the language string. See `shell/lib/golang.sh` (cache dir creation), `shell/lib/python.sh` (uv cache dir creation), and `shell/lib/claude.sh` (interactive config setup) for reference implementations.

@@ -9,11 +9,15 @@ endif
 GOLANG_VERSION        := $(shell git describe --tags --match "golang/*" --exact-match 2>/dev/null)
 GOLANG_CLAUDE_VERSION := $(shell git describe --tags --match "golang-claude/*" --exact-match 2>/dev/null)
 GOLANG_BASE_VERSION   := $(shell git describe --tags --match "golang/*" --abbrev=0 2>/dev/null)
+PYTHON_VERSION        := $(shell git describe --tags --match "python/*" --exact-match 2>/dev/null)
 
 DEV_BASE ?= dev
 
 list-golang-tags:
 	@git tag --list "golang/*"
+
+list-python-tags:
+	@git tag --list "python/*"
 
 list-golang-claude-tags:
 	@git tag --list "golang-claude/*"
@@ -62,3 +66,20 @@ build-golang-claude-dev:
 	  -t devenv-image-golang-claude:dev \
 	  -f golang-claude/Dockerfile \
 	  .
+
+build-python:
+	@if [ -z "$(PYTHON_VERSION)" ]; then echo "No python/* tag on this commit"; exit 1; fi
+	@echo "Building devenv-image-python:$(PYTHON_VERSION)"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-python:$(PYTHON_VERSION) \
+	  python/
+
+build-python-dev:
+	@echo "Building devenv-image-python:dev"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-python:dev \
+	  python/
