@@ -28,14 +28,18 @@ RUN groupadd -g $GROUP_ID devuser && \
 
 RUN mkdir -p /home/devuser/.cache/uv \
              /home/devuser/.local/bin \
-             /home/devuser/.local/share/uv && \
+             /home/devuser/.local/share/uv \
+             /home/devuser/.uv-tools/bin && \
     chown -R $USER_ID:$GROUP_ID /home/devuser/.cache \
-                                 /home/devuser/.local
+                                 /home/devuser/.local \
+                                 /home/devuser/.uv-tools
 
 USER devuser
 
 ENV UV_CACHE_DIR=/home/devuser/.cache/uv
-ENV PATH=$PATH:/home/devuser/.local/bin
+# uv tool shims go to ~/.uv-tools/bin so ~/.local/bin stays free for Claude Code
+ENV UV_TOOL_BIN_DIR=/home/devuser/.uv-tools/bin
+ENV PATH=$PATH:/home/devuser/.local/bin:/home/devuser/.uv-tools/bin
 
 # py-debug: uses system Python (always works, ignores project venv)
 # py-debug-uv: uses project's uv venv (respects project dependencies)

@@ -11,6 +11,7 @@ Two Docker image variants are available:
 | `devenv-image-golang` | Go + dev tools (gopls, delve, air, fzf, ripgrep, fd, jq, vim) |
 | `devenv-image-golang-claude` | Extends `devenv-image-golang` with Claude Code CLI pre-installed |
 | `devenv-image-python` | Python 3.14 + uv + debugpy + ruff + mypy + dev tools (fzf, ripgrep, fd, jq, vim) |
+| `devenv-image-python-claude` | Extends `devenv-image-python` with Claude Code CLI pre-installed |
 
 Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-language caches are persisted on the host under `~/.devenv/`:
 
@@ -36,6 +37,7 @@ Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-la
 > | `devenv-image-golang` | `golang/*` | `golang/v1.0.0` |
 > | `devenv-image-golang-claude` | `golang-claude/*` | `golang-claude/v1.0.0` |
 > | `devenv-image-python` | `python/*` | `python/v1.0.0` |
+> | `devenv-image-python-claude` | `python-claude/*` | `python-claude/v1.0.0` |
 
 ### Go dev image
 
@@ -56,6 +58,23 @@ make build-python
 # Local dev
 make build-python-dev
 ```
+
+### Python + Claude Code image
+
+The python-claude image is versioned independently from the python base. `build-python-claude` requires a `python-claude/*` tag on HEAD, and uses the nearest `python/*` tag reachable from HEAD as its base.
+
+```bash
+# Production (requires python-claude/* tag on HEAD;
+# uses the most recent python/* tag in history as base)
+make build-python-claude
+
+# Local dev (defaults to devenv-image-python:dev as base;
+# override with DEV_BASE=<tag> to pin a specific base version)
+make build-python-claude-dev
+make build-python-claude-dev DEV_BASE=v1.0.0
+```
+
+The resolved base image (`devenv-image-python:<tag>`) must already exist locally — build it from the relevant commit if not.
 
 ### Go + Claude Code image
 
@@ -80,6 +99,7 @@ List available tags:
 make list-golang-tags
 make list-golang-claude-tags
 make list-python-tags
+make list-python-claude-tags
 ```
 
 ## Usage
@@ -110,6 +130,9 @@ devenv golang-claude dev
 # Python environment
 devenv python dev
 
+# Python + Claude Code environment
+devenv python-claude dev
+
 # Localhost-only ports (comma-separated)
 devenv golang-claude dev 3000,9090
 devenv python dev 8000,5678
@@ -125,7 +148,9 @@ Defaults: `language=golang`, `version=dev`
 
 For `golang-claude`, you will be prompted to choose a Claude config scope (project-specific, per-language, or global) on first run. Configs are stored under `~/.devenv/claude/`.
 
-For `python`, project packages (`.venv`) are stored inside the workspace directory and persist naturally via the host mount. The uv download cache and tool installations are persisted under `~/.devenv/` (see the table above).
+For `python` and `python-claude`, project packages (`.venv`) are stored inside the workspace directory and persist naturally via the host mount. The uv download cache and tool installations are persisted under `~/.devenv/` (see the table above).
+
+For `python-claude`, you will be prompted to choose a Claude config scope on first run, identical to `golang-claude`. Configs are stored under `~/.devenv/claude/`.
 
 #### Hiding files from the container
 

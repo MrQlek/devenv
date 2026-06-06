@@ -10,6 +10,8 @@ GOLANG_VERSION        := $(shell git describe --tags --match "golang/*" --exact-
 GOLANG_CLAUDE_VERSION := $(shell git describe --tags --match "golang-claude/*" --exact-match 2>/dev/null)
 GOLANG_BASE_VERSION   := $(shell git describe --tags --match "golang/*" --abbrev=0 2>/dev/null)
 PYTHON_VERSION        := $(shell git describe --tags --match "python/*" --exact-match 2>/dev/null)
+PYTHON_CLAUDE_VERSION := $(shell git describe --tags --match "python-claude/*" --exact-match 2>/dev/null)
+PYTHON_BASE_VERSION   := $(shell git describe --tags --match "python/*" --abbrev=0 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -21,6 +23,9 @@ list-python-tags:
 
 list-golang-claude-tags:
 	@git tag --list "golang-claude/*"
+
+list-python-claude-tags:
+	@git tag --list "python-claude/*"
 
 build-golang:
 	@if [ -z "$(GOLANG_VERSION)" ]; then echo "No golang/* tag on this commit"; exit 1; fi
@@ -83,3 +88,31 @@ build-python-dev:
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-python:dev \
 	  python/
+
+build-python-claude:
+	@if [ -z "$(PYTHON_CLAUDE_VERSION)" ]; then echo "No python-claude/* tag on this commit"; exit 1; fi
+	@if [ -z "$(PYTHON_BASE_VERSION)" ]; then echo "No python/* tag reachable from HEAD"; exit 1; fi
+	@if ! docker image inspect devenv-image-python:$(PYTHON_BASE_VERSION) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-python:$(PYTHON_BASE_VERSION) not found. Build it from commit tagged $(PYTHON_BASE_VERSION)."; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-python-claude:$(PYTHON_CLAUDE_VERSION) on devenv-image-python:$(PYTHON_BASE_VERSION)"
+	docker build \
+	  --build-arg BASE_VERSION=$(PYTHON_BASE_VERSION) \
+	  -t devenv-image-python-claude:$(PYTHON_CLAUDE_VERSION) \
+	  -f python-claude/Dockerfile \
+	  .
+
+build-python-claude-dev:
+	@if ! docker image inspect devenv-image-python:$(DEV_BASE) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-python:$(DEV_BASE) not found."; \
+	    if [ "$(DEV_BASE)" = "dev" ]; then echo "Run: make build-python-dev"; \
+	    else echo "Build it from the commit tagged python/$(DEV_BASE), or pass DEV_BASE=<version>."; fi; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-python-claude:dev on devenv-image-python:$(DEV_BASE)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DEV_BASE) \
+	  -t devenv-image-python-claude:dev \
+	  -f python-claude/Dockerfile \
+	  .
