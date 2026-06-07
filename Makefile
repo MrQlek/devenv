@@ -38,7 +38,7 @@ build-golang:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-golang:$(GOLANG_VERSION) \
-	  golang/
+	  images/golang/
 
 build-golang-dev:
 	@echo "Building devenv-image-golang:dev"
@@ -46,7 +46,7 @@ build-golang-dev:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-golang:dev \
-	  golang/
+	  images/golang/
 
 build-golang-claude:
 	@if [ -z "$(GOLANG_CLAUDE_VERSION)" ]; then echo "No golang-claude/* tag on this commit"; exit 1; fi
@@ -59,7 +59,7 @@ build-golang-claude:
 	docker build \
 	  --build-arg BASE_VERSION=$(GOLANG_BASE_VERSION) \
 	  -t devenv-image-golang-claude:$(GOLANG_CLAUDE_VERSION) \
-	  -f golang-claude/Dockerfile \
+	  -f images/golang-claude/Dockerfile \
 	  .
 
 build-golang-claude-dev:
@@ -73,7 +73,7 @@ build-golang-claude-dev:
 	docker build \
 	  --build-arg BASE_VERSION=$(DEV_BASE) \
 	  -t devenv-image-golang-claude:dev \
-	  -f golang-claude/Dockerfile \
+	  -f images/golang-claude/Dockerfile \
 	  .
 
 build-python:
@@ -83,7 +83,7 @@ build-python:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-python:$(PYTHON_VERSION) \
-	  python/
+	  images/python/
 
 build-python-dev:
 	@echo "Building devenv-image-python:dev"
@@ -91,7 +91,7 @@ build-python-dev:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-python:dev \
-	  python/
+	  images/python/
 
 build-python-claude:
 	@if [ -z "$(PYTHON_CLAUDE_VERSION)" ]; then echo "No python-claude/* tag on this commit"; exit 1; fi
@@ -104,7 +104,7 @@ build-python-claude:
 	docker build \
 	  --build-arg BASE_VERSION=$(PYTHON_BASE_VERSION) \
 	  -t devenv-image-python-claude:$(PYTHON_CLAUDE_VERSION) \
-	  -f python-claude/Dockerfile \
+	  -f images/python-claude/Dockerfile \
 	  .
 
 build-python-claude-dev:
@@ -118,7 +118,7 @@ build-python-claude-dev:
 	docker build \
 	  --build-arg BASE_VERSION=$(DEV_BASE) \
 	  -t devenv-image-python-claude:dev \
-	  -f python-claude/Dockerfile \
+	  -f images/python-claude/Dockerfile \
 	  .
 
 build-typescript:
@@ -128,7 +128,7 @@ build-typescript:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-typescript:$(TYPESCRIPT_VERSION) \
-	  typescript/
+	  images/typescript/
 
 build-typescript-dev:
 	@echo "Building devenv-image-typescript:dev"
@@ -136,4 +136,4 @@ build-typescript-dev:
 	  --build-arg USER_ID=$(UID) \
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-typescript:dev \
-	  typescript/
+	  images/typescript/

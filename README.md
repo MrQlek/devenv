@@ -251,7 +251,7 @@ The argument to `devenv` follows the convention `<lang>[-<addon>]` (e.g. `golang
 ### Add a new language `<lang>`
 
 1. Create `compose/<lang>.yml` with only language-specific bits (image overrides, caches, debugger port, extra caps, etc.). Service name must be `devenv`.
-2. Build a `devenv-image-<lang>` image (Dockerfile under `<lang>/`).
+2. Build a `devenv-image-<lang>` image (Dockerfile under `images/<lang>/`).
 3. `devenv <lang>` will stack `compose/base.yml` + `compose/<lang>.yml`.
 
 ### Add a new addon `<addon>` (e.g. `claude`, `codex`, ...)
