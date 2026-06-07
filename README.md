@@ -12,6 +12,7 @@ Two Docker image variants are available:
 | `devenv-image-golang-claude` | Extends `devenv-image-golang` with Claude Code CLI pre-installed |
 | `devenv-image-python` | Python 3.14 + uv + debugpy + ruff + mypy + dev tools (fzf, ripgrep, fd, jq, vim) |
 | `devenv-image-python-claude` | Extends `devenv-image-python` with Claude Code CLI pre-installed |
+| `devenv-image-typescript` | Node 24 LTS + TypeScript + tsx + `@vscode/vsce` + `eas-cli` + dev tools (fzf, ripgrep, fd, jq, vim) |
 
 Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-language caches are persisted on the host under `~/.devenv/`:
 
@@ -22,6 +23,8 @@ Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-la
 | Python | `~/.devenv/uv-cache/<version>/` | uv download cache (wheels/sdists) |
 | Python | `~/.devenv/uv-share/<version>/` | `uv tool install` environments |
 | Python | `~/.devenv/uv-bin/<version>/` | uv tool shims (`~/.local/bin`) |
+| TypeScript | `~/.devenv/npm-cache/<version>/` | npm download cache |
+| TypeScript | `~/.devenv/expo/<version>/` | Expo / EAS state (auth tokens, etc.) |
 
 ## Requirements
 
@@ -38,6 +41,7 @@ Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-la
 > | `devenv-image-golang-claude` | `golang-claude/*` | `golang-claude/v1.0.0` |
 > | `devenv-image-python` | `python/*` | `python/v1.0.0` |
 > | `devenv-image-python-claude` | `python-claude/*` | `python-claude/v1.0.0` |
+> | `devenv-image-typescript` | `typescript/*` | `typescript/v1.0.0` |
 
 ### Go dev image
 
@@ -57,6 +61,18 @@ make build-python
 
 # Local dev
 make build-python-dev
+```
+
+### TypeScript dev image
+
+For both VSCode extension development (`vsce package`, `tsc`) and Expo mobile apps (`npx create-expo-app`, `eas-cli`).
+
+```bash
+# Production (requires typescript/* tag on HEAD)
+make build-typescript
+
+# Local dev
+make build-typescript-dev
 ```
 
 ### Python + Claude Code image
@@ -100,6 +116,7 @@ make list-golang-tags
 make list-golang-claude-tags
 make list-python-tags
 make list-python-claude-tags
+make list-typescript-tags
 ```
 
 ## Usage
@@ -133,6 +150,9 @@ devenv python dev
 # Python + Claude Code environment
 devenv python-claude dev
 
+# TypeScript environment (VSCode extensions, Expo apps)
+devenv typescript dev
+
 # Localhost-only ports (comma-separated)
 devenv golang-claude dev 3000,9090
 devenv python dev 8000,5678
@@ -151,6 +171,8 @@ For `golang-claude`, you will be prompted to choose a Claude config scope (proje
 For `python` and `python-claude`, project packages (`.venv`) are stored inside the workspace directory and persist naturally via the host mount. The uv download cache and tool installations are persisted under `~/.devenv/` (see the table above).
 
 For `python-claude`, you will be prompted to choose a Claude config scope on first run, identical to `golang-claude`. Configs are stored under `~/.devenv/claude/`.
+
+For `typescript`, per-project `node_modules` live in the workspace and persist via the host mount; the npm download cache and Expo/EAS state are persisted under `~/.devenv/` (see the table above). Port `8081` (Metro bundler) is published on `0.0.0.0` so a phone on the same LAN can connect; the Node inspector on `9229` stays on `127.0.0.1`.
 
 #### Hiding files from the container
 

@@ -1,0 +1,8 @@
+services:
+  devenv:
+    ports:
+      - "127.0.0.1:9229:9229"
+      - "0.0.0.0:8081:8081"
+    volumes:
+      - ${_DEVENV_USER_HOME}/.devenv/npm-cache/${IMAGE_VERSION:-dev}:/home/devuser/.npm
+      - ${_DEVENV_USER_HOME}/.devenv/expo/${IMAGE_VERSION:-dev}:/home/devuser/.expo

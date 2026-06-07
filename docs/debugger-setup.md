@@ -118,3 +118,94 @@ End-to-end:
 | `ModuleNotFoundError: No module named 'debugpy'` with `py-debug-uv` | Use the full form `uv run --with debugpy python -m debugpy ...` to inject debugpy without adding it to the project. |
 | VS Code can't resolve imports / red underlines | Set `python.defaultInterpreterPath` in `.vscode/settings.json` to point at `.venv/bin/python` (see above). |
 | `uv tool install` binaries missing after container restart | Tool environments persist via the `uv-share` volume but shims in `~/.local/bin` are on the `uv-bin` volume — both should survive restarts. If a shim is missing, re-run `uv tool install <name>`. |
+
+---
+
+## TypeScript / Node (`typescript`)
+
+Covers both VSCode extension development and Expo mobile apps. Port `9229` (Node inspector) is published on `127.0.0.1`; port `8081` (Metro bundler) is published on `0.0.0.0` so a phone on the same Wi-Fi can reach it (declared in `compose/typescript.yml`).
+
+### Inside the container — debugging Node / TS code
+
+Three convenience aliases are available:
+
+```bash
+# TypeScript: tsc compile + node debug on the emitted JS (recommended)
+ts-debug dist/app.js
+
+# Plain JavaScript
+node-debug app.js
+
+# TypeScript via tsx — fast, but see "tsx caveat" below
+tsx-debug app.ts
+
+# Full form for custom options
+node --inspect-brk=0.0.0.0:9229 <file>
+```
+
+Each prints `Debugger listening on ws://0.0.0.0:9229/...` and blocks until VS Code attaches.
+
+`ts-debug` is just `tsc && node --inspect-brk=0.0.0.0:9229`, so it requires a `tsconfig.json` that emits to a known output path. A minimal one:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "commonjs",
+    "sourceMap": true,
+    "outDir": "dist"
+  },
+  "include": ["*.ts"]
+}
+```
+
+The `sourceMap` flag is what lets VS Code show your `.ts` source while stepping through the compiled `.js`.
+
+#### tsx caveat
+
+`tsx` runs TypeScript transpilation in a Node worker thread that blocks on `Atomics.wait`. With `--inspect-brk` (which `tsx-debug` uses), the VS Code debugger usually opens paused inside that worker's wait loop, and pressing **Continue** on the worker thread is a no-op — the main thread also has to be resumed. To debug with `tsx-debug` you must open the **Call Stack** panel, select the **main** thread, then resume. For most workflows, `ts-debug` is simpler and more predictable.
+
+### Inside the container — Expo (phone on LAN)
+
+`npx create-expo-app my-app && cd my-app && npx expo start --lan` runs Metro on `8081`. Because the container publishes `8081` on `0.0.0.0`, the Expo Go app on your phone can scan the QR code and connect — make sure your phone is on the same Wi-Fi as your dev machine.
+
+For native builds and store submissions, `eas-cli` is preinstalled. Auth tokens live in `~/.expo/state.json` and persist via the `expo` volume mount.
+
+### Inside the container — VSCode extensions
+
+`vsce` (the official VSCode extension packager) is preinstalled:
+
+```bash
+vsce package        # produces .vsix
+vsce publish        # publish to the Marketplace
+```
+
+Scaffold a new extension per-project with `npx --package yo --package generator-code -- yo code`.
+
+### VS Code (host → container)
+
+Sourcing `shell/devenv.sh` defines `devenv-vscode-debug-typescript` (from `scripts/vscode-debug-typescript.sh`). Run it on the host, in the directory you pass to `devenv`:
+
+```bash
+devenv-vscode-debug-typescript          # writes .vscode/launch.json
+devenv-vscode-debug-typescript --force  # overwrite an existing one
+```
+
+The generated `launch.json` attaches the VS Code Node debugger to the inspector on `127.0.0.1:9229` and uses `localRoot` / `remoteRoot` to map `${workspaceFolder}` on the host to `/workspace` inside the container.
+
+End-to-end (Node / TS script):
+
+1. Host: `devenv-vscode-debug-typescript` (once per project).
+2. Host: `devenv typescript dev`.
+3. Container: `cd /workspace/<your-project> && ts-debug dist/index.js` (run `tsc --init` once if you don't have a `tsconfig.json` yet).
+4. VS Code: open the same directory on the host, set a breakpoint, F5 → **Attach to Node in devenv**.
+
+### Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| `ECONNREFUSED` on attach | `ts-debug` / `node-debug` / `tsx-debug` not running, or container started without the `9229` port mapping (`docker port <container>` should list it). |
+| `tsx-debug` debugger pauses on `Atomics.wait` and Continue does nothing | tsx's transpile worker — open the **Call Stack** panel, select the **main** thread, then F5. Or just use `ts-debug`. |
+| Breakpoints stay hollow / "unverified" | `localRoot` / `remoteRoot` mismatch — your host workspace folder isn't what was mounted to `/workspace`. Edit `launch.json`. |
+| Phone can't connect to Metro / "Network response timed out" | Phone is on a different network than your dev machine, or the host firewall is blocking port `8081`. Verify both are on the same Wi-Fi and `docker port <container>` lists `0.0.0.0:8081`. |
+| `vsce` complains about missing `package.json` fields | Run `vsce ls` to see what's missing; the VSCode extension manifest requires `publisher`, `engines.vscode`, and a few others before `vsce package` will succeed. |

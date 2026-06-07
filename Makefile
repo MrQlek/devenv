@@ -12,6 +12,7 @@ GOLANG_BASE_VERSION   := $(shell git describe --tags --match "golang/*" --abbrev
 PYTHON_VERSION        := $(shell git describe --tags --match "python/*" --exact-match 2>/dev/null)
 PYTHON_CLAUDE_VERSION := $(shell git describe --tags --match "python-claude/*" --exact-match 2>/dev/null)
 PYTHON_BASE_VERSION   := $(shell git describe --tags --match "python/*" --abbrev=0 2>/dev/null)
+TYPESCRIPT_VERSION    := $(shell git describe --tags --match "typescript/*" --exact-match 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -20,6 +21,9 @@ list-golang-tags:
 
 list-python-tags:
 	@git tag --list "python/*"
+
+list-typescript-tags:
+	@git tag --list "typescript/*"
 
 list-golang-claude-tags:
 	@git tag --list "golang-claude/*"
@@ -116,3 +120,20 @@ build-python-claude-dev:
 	  -t devenv-image-python-claude:dev \
 	  -f python-claude/Dockerfile \
 	  .
+
+build-typescript:
+	@if [ -z "$(TYPESCRIPT_VERSION)" ]; then echo "No typescript/* tag on this commit"; exit 1; fi
+	@echo "Building devenv-image-typescript:$(TYPESCRIPT_VERSION)"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-typescript:$(TYPESCRIPT_VERSION) \
+	  typescript/
+
+build-typescript-dev:
+	@echo "Building devenv-image-typescript:dev"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-typescript:dev \
+	  typescript/
