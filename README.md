@@ -13,6 +13,7 @@ Two Docker image variants are available:
 | `devenv-image-python` | Python 3.14 + uv + debugpy + ruff + mypy + dev tools (fzf, ripgrep, fd, jq, vim) |
 | `devenv-image-python-claude` | Extends `devenv-image-python` with Claude Code CLI pre-installed |
 | `devenv-image-typescript` | Node 24 LTS + TypeScript + tsx + `@vscode/vsce` + `eas-cli` + dev tools (fzf, ripgrep, fd, jq, vim) |
+| `devenv-image-typescript-claude` | Extends `devenv-image-typescript` with Claude Code CLI pre-installed |
 
 Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-language caches are persisted on the host under `~/.devenv/`:
 
@@ -42,6 +43,7 @@ Containers run as a non-root user (`devuser`) matching your host UID/GID. Per-la
 > | `devenv-image-python` | `python/*` | `python/v1.0.0` |
 > | `devenv-image-python-claude` | `python-claude/*` | `python-claude/v1.0.0` |
 > | `devenv-image-typescript` | `typescript/*` | `typescript/v1.0.0` |
+> | `devenv-image-typescript-claude` | `typescript-claude/*` | `typescript-claude/v1.0.0` |
 
 ### Go dev image
 
@@ -109,6 +111,23 @@ make build-golang-claude-dev DEV_BASE=v1.0.0
 
 The resolved base image (`devenv-image-golang:<tag>`) must already exist locally — build it from the relevant commit if not.
 
+### TypeScript + Claude Code image
+
+The typescript-claude image is versioned independently from the typescript base. `build-typescript-claude` requires a `typescript-claude/*` tag on HEAD, and uses the nearest `typescript/*` tag reachable from HEAD as its base.
+
+```bash
+# Production (requires typescript-claude/* tag on HEAD;
+# uses the most recent typescript/* tag in history as base)
+make build-typescript-claude
+
+# Local dev (defaults to devenv-image-typescript:dev as base;
+# override with DEV_BASE=<tag> to pin a specific base version)
+make build-typescript-claude-dev
+make build-typescript-claude-dev DEV_BASE=v1.0.0
+```
+
+The resolved base image (`devenv-image-typescript:<tag>`) must already exist locally — build it from the relevant commit if not.
+
 List available tags:
 
 ```bash
@@ -117,6 +136,7 @@ make list-golang-claude-tags
 make list-python-tags
 make list-python-claude-tags
 make list-typescript-tags
+make list-typescript-claude-tags
 ```
 
 ## Usage
@@ -153,6 +173,9 @@ devenv python-claude dev
 # TypeScript environment (VSCode extensions, Expo apps)
 devenv typescript dev
 
+# TypeScript + Claude Code environment
+devenv typescript-claude dev
+
 # Localhost-only ports (comma-separated)
 devenv golang-claude dev 3000,9090
 devenv python dev 8000,5678
@@ -171,6 +194,8 @@ For `golang-claude`, you will be prompted to choose a Claude config scope (proje
 For `python` and `python-claude`, project packages (`.venv`) are stored inside the workspace directory and persist naturally via the host mount. The uv download cache and tool installations are persisted under `~/.devenv/` (see the table above).
 
 For `python-claude`, you will be prompted to choose a Claude config scope on first run, identical to `golang-claude`. Configs are stored under `~/.devenv/claude/`.
+
+For `typescript-claude`, you will be prompted to choose a Claude config scope on first run, identical to `golang-claude`. Configs are stored under `~/.devenv/claude/`.
 
 For `typescript`, per-project `node_modules` live in the workspace and persist via the host mount; the npm download cache and Expo/EAS state are persisted under `~/.devenv/` (see the table above). Port `8081` (Metro bundler) is published on `0.0.0.0` so a phone on the same LAN can connect; the Node inspector on `9229` stays on `127.0.0.1`.
 

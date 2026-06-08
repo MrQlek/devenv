@@ -12,7 +12,9 @@ GOLANG_BASE_VERSION   := $(shell git describe --tags --match "golang/*" --abbrev
 PYTHON_VERSION        := $(shell git describe --tags --match "python/*" --exact-match 2>/dev/null)
 PYTHON_CLAUDE_VERSION := $(shell git describe --tags --match "python-claude/*" --exact-match 2>/dev/null)
 PYTHON_BASE_VERSION   := $(shell git describe --tags --match "python/*" --abbrev=0 2>/dev/null)
-TYPESCRIPT_VERSION    := $(shell git describe --tags --match "typescript/*" --exact-match 2>/dev/null)
+TYPESCRIPT_VERSION        := $(shell git describe --tags --match "typescript/*" --exact-match 2>/dev/null)
+TYPESCRIPT_CLAUDE_VERSION := $(shell git describe --tags --match "typescript-claude/*" --exact-match 2>/dev/null)
+TYPESCRIPT_BASE_VERSION   := $(shell git describe --tags --match "typescript/*" --abbrev=0 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -30,6 +32,9 @@ list-golang-claude-tags:
 
 list-python-claude-tags:
 	@git tag --list "python-claude/*"
+
+list-typescript-claude-tags:
+	@git tag --list "typescript-claude/*"
 
 build-golang:
 	@if [ -z "$(GOLANG_VERSION)" ]; then echo "No golang/* tag on this commit"; exit 1; fi
@@ -137,3 +142,31 @@ build-typescript-dev:
 	  --build-arg GROUP_ID=$(GID) \
 	  -t devenv-image-typescript:dev \
 	  images/typescript/
+
+build-typescript-claude:
+	@if [ -z "$(TYPESCRIPT_CLAUDE_VERSION)" ]; then echo "No typescript-claude/* tag on this commit"; exit 1; fi
+	@if [ -z "$(TYPESCRIPT_BASE_VERSION)" ]; then echo "No typescript/* tag reachable from HEAD"; exit 1; fi
+	@if ! docker image inspect devenv-image-typescript:$(TYPESCRIPT_BASE_VERSION) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-typescript:$(TYPESCRIPT_BASE_VERSION) not found. Build it from commit tagged $(TYPESCRIPT_BASE_VERSION)."; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-typescript-claude:$(TYPESCRIPT_CLAUDE_VERSION) on devenv-image-typescript:$(TYPESCRIPT_BASE_VERSION)"
+	docker build \
+	  --build-arg BASE_VERSION=$(TYPESCRIPT_BASE_VERSION) \
+	  -t devenv-image-typescript-claude:$(TYPESCRIPT_CLAUDE_VERSION) \
+	  -f images/typescript-claude/Dockerfile \
+	  .
+
+build-typescript-claude-dev:
+	@if ! docker image inspect devenv-image-typescript:$(DEV_BASE) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-typescript:$(DEV_BASE) not found."; \
+	    if [ "$(DEV_BASE)" = "dev" ]; then echo "Run: make build-typescript-dev"; \
+	    else echo "Build it from the commit tagged typescript/$(DEV_BASE), or pass DEV_BASE=<version>."; fi; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-typescript-claude:dev on devenv-image-typescript:$(DEV_BASE)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DEV_BASE) \
+	  -t devenv-image-typescript-claude:dev \
+	  -f images/typescript-claude/Dockerfile \
+	  .
