@@ -1,6 +1,6 @@
 # docs
 
-Reference documentation for Docker Dev Env. The project [README](../README.md) is the entry point; everything below goes deeper.
+Reference documentation for Dev Env. The project [README](../README.md) is the entry point; everything below goes deeper.
 
 ## User docs
 
