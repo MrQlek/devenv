@@ -20,3 +20,4 @@ services:
     tmpfs:
       - /tmp:size=512m
       - /workspace/.devenv_exclude:size=1m
+      - /workspace/.vscode:size=1m
