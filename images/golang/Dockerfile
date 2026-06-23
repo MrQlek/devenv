@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y \
     fd-find \
     jq \
     vim \
+    procps \
+    psmisc \
+    lsof \
+    tree \
     libgl1-mesa-dev \
     libxcursor-dev \
     libxrandr-dev \

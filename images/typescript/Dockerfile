@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y \
     fd-find \
     jq \
     vim \
+    procps \
+    psmisc \
+    lsof \
+    tree \
     && rm -rf /var/lib/apt/lists/*
 
 # node:bookworm-slim ships a uid-1000 `node` user; drop it so devuser can claim uid 1000.
