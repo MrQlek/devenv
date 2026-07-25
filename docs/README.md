@@ -17,6 +17,7 @@ Reference documentation for Dev Env. The project [README](../README.md) is the e
 - **[languages/golang.md](languages/golang.md)** — Go-specific image contents, caches, ports.
 - **[languages/python.md](languages/python.md)** — Python-specific image contents, caches, linting/type checking, `uv tool install` persistence.
 - **[languages/typescript.md](languages/typescript.md)** — TypeScript/Node-specific image contents, Expo, `vsce`.
+- **[languages/hugo.md](languages/hugo.md)** — Hugo-specific image contents, caches, dev server.
 
 ## Contributor docs
 

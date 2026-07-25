@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLAUDE_VERSION="2.1.150"
-CLAUDE_INSTALLER_SHA256="005ec1a937f32dfbb74f9e810287bcb12cba2d5cae4c9277aa8c6364adbf1787"
+CLAUDE_VERSION="2.1.220"
+CLAUDE_INSTALLER_SHA256="cde4f1702d3b1695f92b73d26888364e17bca476e17f0fd676484c951d36c125"
 
 installer=$(mktemp)
 curl -fsSL https://claude.ai/install.sh -o "${installer}"

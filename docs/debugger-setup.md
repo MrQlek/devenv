@@ -188,3 +188,9 @@ The generated `launch.json` attaches the VS Code Node debugger to the inspector 
 | `tsx-debug` debugger pauses on `Atomics.wait` and Continue does nothing | tsx's transpile worker — open the **Call Stack** panel, select the **main** thread, then F5. Or just use `ts-debug`. |
 | Breakpoints stay hollow / "unverified" | `localRoot` / `remoteRoot` mismatch — your host workspace folder isn't what was mounted to `/workspace`. Edit `launch.json`. |
 | Phone can't connect to Metro / "Network response timed out" | Phone is on a different network than your dev machine, or the host firewall is blocking port `8081`. Verify both are on the same Wi-Fi and `docker port <container>` lists `0.0.0.0:8081`. |
+
+---
+
+## Hugo (`hugo`, `hugo-claude`)
+
+Hugo is a static-site generator, not a long-running process with a debuggable runtime — there's no remote debugger wired up for it. `hugo server` (port `1313`, published on `127.0.0.1`, declared in `compose/hugo.yml`) gives live reload instead. See [languages/hugo.md](languages/hugo.md) for the full workflow.

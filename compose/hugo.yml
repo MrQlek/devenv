@@ -1,0 +1,7 @@
+services:
+  devenv:
+    ports:
+      - "127.0.0.1:1313:1313"
+    volumes:
+      - ${_DEVENV_USER_HOME}/.devenv/hugo-mod/${IMAGE_VERSION:-dev}:/home/devuser/go/pkg/mod
+      - ${_DEVENV_USER_HOME}/.devenv/hugo-cache/${IMAGE_VERSION:-dev}:/home/devuser/.cache/hugo

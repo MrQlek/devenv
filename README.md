@@ -1,6 +1,6 @@
 # Dev Env
 
-Reproducible, containerized development environments for Go, Python, and TypeScript, with optional Claude Code integration.
+Reproducible, containerized development environments for Go, Python, TypeScript, and Hugo, with optional Claude Code integration.
 
 Each language gets its own image with the toolchain, debugger, and CLI utilities preinstalled. Your current directory bind-mounts at `/workspace`, the container runs as a non-root `devuser` matching your host UID/GID (no `chown` dance on bind-mounted files), and per-language caches are persisted on the host under `~/.devenv/` so you don't re-download modules on every restart.
 
@@ -24,7 +24,7 @@ cd ~/code/myproject
 devenv golang dev              # your cwd is mounted at /workspace
 ```
 
-For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`), build the base image first, then the Claude image on top — see [docs/building-images.md](docs/building-images.md).
+For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`, `hugo-claude`), build the base image first, then the Claude image on top — see [docs/building-images.md](docs/building-images.md).
 
 ## Available environments
 
@@ -36,8 +36,10 @@ For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`),
 | `devenv-image-python-claude` | …plus Claude Code CLI |
 | `devenv-image-typescript` | Node 24 LTS + `typescript`, `tsx`, `@vscode/vsce`, `eas-cli` + dev tools |
 | `devenv-image-typescript-claude` | …plus Claude Code CLI |
+| `devenv-image-hugo` | Hugo Extended + Go toolchain (for Hugo Modules) + `fzf`, `ripgrep`, `fd`, `jq`, `vim` |
+| `devenv-image-hugo-claude` | …plus Claude Code CLI |
 
-Six images in total — three languages × with/without Claude. Each is documented in [docs/languages/](docs/languages/).
+Eight images in total — four languages × with/without Claude. Each is documented in [docs/languages/](docs/languages/).
 
 ## Versioning
 
@@ -51,6 +53,8 @@ Each image has its own git-tag namespace, and Claude variants are versioned inde
 | `devenv-image-python-claude` | `python-claude/*` |
 | `devenv-image-typescript` | `typescript/*` |
 | `devenv-image-typescript-claude` | `typescript-claude/*` |
+| `devenv-image-hugo` | `hugo/*` |
+| `devenv-image-hugo-claude` | `hugo-claude/*` |
 
 Tagged builds (e.g. `make build-golang`) require the matching tag on HEAD. For day-to-day work use `make build-<lang>-dev`, which produces `:dev` and skips the tag requirement. Full rules in [docs/building-images.md](docs/building-images.md).
 
@@ -92,7 +96,7 @@ For defense in depth — especially when running coding agents that fetch and ex
 - [docs/secrets.md](docs/secrets.md) — `.devenv_exclude/` and threat model
 - [docs/claude-code.md](docs/claude-code.md) — Claude Code config mounts and API key security
 - [docs/debugger-setup.md](docs/debugger-setup.md) — per-language remote debugging
-- [docs/languages/](docs/languages/) — Go, Python, TypeScript specifics
+- [docs/languages/](docs/languages/) — Go, Python, TypeScript, Hugo specifics
 - [docs/adding-a-language.md](docs/adding-a-language.md) — extend the system with a new language or addon
 
 ## Requirements

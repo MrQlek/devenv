@@ -15,6 +15,8 @@ The version segment in each path is the image tag you invoked `devenv` with (`de
 | Python | `~/.devenv/uv-bin/<version>/` | `/home/devuser/.uv-tools/bin` | uv tool shims (added to `PATH`) |
 | TypeScript | `~/.devenv/npm-cache/<version>/` | `/home/devuser/.npm` | npm download cache |
 | TypeScript | `~/.devenv/expo/<version>/` | `/home/devuser/.expo` | Expo / EAS state (auth tokens, etc.) |
+| Hugo | `~/.devenv/hugo-mod/<version>/` | `/home/devuser/go/pkg/mod` | Go module cache (backs Hugo Modules) |
+| Hugo | `~/.devenv/hugo-cache/<version>/` | `/home/devuser/.cache/hugo` | `HUGO_CACHEDIR` — resource/image-processing cache, cached remote modules |
 
 Claude variants additionally use `~/.devenv/claude/` for configuration mounts — see [claude-code.md](claude-code.md).
 
@@ -35,6 +37,7 @@ Each cache directory is plain files on the host — safe to delete when you no l
 rm -rf ~/.devenv/go-mod/<old-version> ~/.devenv/go-cache/<old-version>
 rm -rf ~/.devenv/uv-cache/<old-version> ~/.devenv/uv-share/<old-version> ~/.devenv/uv-bin/<old-version>
 rm -rf ~/.devenv/npm-cache/<old-version> ~/.devenv/expo/<old-version>
+rm -rf ~/.devenv/hugo-mod/<old-version> ~/.devenv/hugo-cache/<old-version>
 ```
 
 The cache directories are recreated automatically on the next `devenv` invocation for that version.

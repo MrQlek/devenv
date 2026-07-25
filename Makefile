@@ -15,6 +15,9 @@ PYTHON_BASE_VERSION   := $(shell git describe --tags --match "python/*" --abbrev
 TYPESCRIPT_VERSION        := $(shell git describe --tags --match "typescript/*" --exact-match 2>/dev/null)
 TYPESCRIPT_CLAUDE_VERSION := $(shell git describe --tags --match "typescript-claude/*" --exact-match 2>/dev/null)
 TYPESCRIPT_BASE_VERSION   := $(shell git describe --tags --match "typescript/*" --abbrev=0 2>/dev/null)
+HUGO_VERSION        := $(shell git describe --tags --match "hugo/*" --exact-match 2>/dev/null)
+HUGO_CLAUDE_VERSION := $(shell git describe --tags --match "hugo-claude/*" --exact-match 2>/dev/null)
+HUGO_BASE_VERSION   := $(shell git describe --tags --match "hugo/*" --abbrev=0 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -35,6 +38,12 @@ list-python-claude-tags:
 
 list-typescript-claude-tags:
 	@git tag --list "typescript-claude/*"
+
+list-hugo-tags:
+	@git tag --list "hugo/*"
+
+list-hugo-claude-tags:
+	@git tag --list "hugo-claude/*"
 
 build-golang:
 	@if [ -z "$(GOLANG_VERSION)" ]; then echo "No golang/* tag on this commit"; exit 1; fi
@@ -169,4 +178,53 @@ build-typescript-claude-dev:
 	  --build-arg BASE_VERSION=$(DEV_BASE) \
 	  -t devenv-image-typescript-claude:dev \
 	  -f images/typescript-claude/Dockerfile \
+	  .
+
+# Unlike the other base-language images, hugo/Dockerfile COPYs installers/hugo/install.sh,
+# so it needs the repo root as build context rather than images/hugo/.
+build-hugo:
+	@if [ -z "$(HUGO_VERSION)" ]; then echo "No hugo/* tag on this commit"; exit 1; fi
+	@echo "Building devenv-image-hugo:$(HUGO_VERSION)"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-hugo:$(HUGO_VERSION) \
+	  -f images/hugo/Dockerfile \
+	  .
+
+build-hugo-dev:
+	@echo "Building devenv-image-hugo:dev"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-hugo:dev \
+	  -f images/hugo/Dockerfile \
+	  .
+
+build-hugo-claude:
+	@if [ -z "$(HUGO_CLAUDE_VERSION)" ]; then echo "No hugo-claude/* tag on this commit"; exit 1; fi
+	@if [ -z "$(HUGO_BASE_VERSION)" ]; then echo "No hugo/* tag reachable from HEAD"; exit 1; fi
+	@if ! docker image inspect devenv-image-hugo:$(HUGO_BASE_VERSION) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-hugo:$(HUGO_BASE_VERSION) not found. Build it from commit tagged $(HUGO_BASE_VERSION)."; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-hugo-claude:$(HUGO_CLAUDE_VERSION) on devenv-image-hugo:$(HUGO_BASE_VERSION)"
+	docker build \
+	  --build-arg BASE_VERSION=$(HUGO_BASE_VERSION) \
+	  -t devenv-image-hugo-claude:$(HUGO_CLAUDE_VERSION) \
+	  -f images/hugo-claude/Dockerfile \
+	  .
+
+build-hugo-claude-dev:
+	@if ! docker image inspect devenv-image-hugo:$(DEV_BASE) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-hugo:$(DEV_BASE) not found."; \
+	    if [ "$(DEV_BASE)" = "dev" ]; then echo "Run: make build-hugo-dev"; \
+	    else echo "Build it from the commit tagged hugo/$(DEV_BASE), or pass DEV_BASE=<version>."; fi; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-hugo-claude:dev on devenv-image-hugo:$(DEV_BASE)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DEV_BASE) \
+	  -t devenv-image-hugo-claude:dev \
+	  -f images/hugo-claude/Dockerfile \
 	  .
