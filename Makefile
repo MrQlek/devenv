@@ -18,6 +18,9 @@ TYPESCRIPT_BASE_VERSION   := $(shell git describe --tags --match "typescript/*" 
 HUGO_VERSION        := $(shell git describe --tags --match "hugo/*" --exact-match 2>/dev/null)
 HUGO_CLAUDE_VERSION := $(shell git describe --tags --match "hugo-claude/*" --exact-match 2>/dev/null)
 HUGO_BASE_VERSION   := $(shell git describe --tags --match "hugo/*" --abbrev=0 2>/dev/null)
+DOTNET_VERSION        := $(shell git describe --tags --match "dotnet/*" --exact-match 2>/dev/null)
+DOTNET_CLAUDE_VERSION := $(shell git describe --tags --match "dotnet-claude/*" --exact-match 2>/dev/null)
+DOTNET_BASE_VERSION   := $(shell git describe --tags --match "dotnet/*" --abbrev=0 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -44,6 +47,12 @@ list-hugo-tags:
 
 list-hugo-claude-tags:
 	@git tag --list "hugo-claude/*"
+
+list-dotnet-tags:
+	@git tag --list "dotnet/*"
+
+list-dotnet-claude-tags:
+	@git tag --list "dotnet-claude/*"
 
 build-golang:
 	@if [ -z "$(GOLANG_VERSION)" ]; then echo "No golang/* tag on this commit"; exit 1; fi
@@ -227,4 +236,49 @@ build-hugo-claude-dev:
 	  --build-arg BASE_VERSION=$(DEV_BASE) \
 	  -t devenv-image-hugo-claude:dev \
 	  -f images/hugo-claude/Dockerfile \
+	  .
+
+build-dotnet:
+	@if [ -z "$(DOTNET_VERSION)" ]; then echo "No dotnet/* tag on this commit"; exit 1; fi
+	@echo "Building devenv-image-dotnet:$(DOTNET_VERSION)"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-dotnet:$(DOTNET_VERSION) \
+	  images/dotnet/
+
+build-dotnet-dev:
+	@echo "Building devenv-image-dotnet:dev"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-dotnet:dev \
+	  images/dotnet/
+
+build-dotnet-claude:
+	@if [ -z "$(DOTNET_CLAUDE_VERSION)" ]; then echo "No dotnet-claude/* tag on this commit"; exit 1; fi
+	@if [ -z "$(DOTNET_BASE_VERSION)" ]; then echo "No dotnet/* tag reachable from HEAD"; exit 1; fi
+	@if ! docker image inspect devenv-image-dotnet:$(DOTNET_BASE_VERSION) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-dotnet:$(DOTNET_BASE_VERSION) not found. Build it from commit tagged $(DOTNET_BASE_VERSION)."; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-dotnet-claude:$(DOTNET_CLAUDE_VERSION) on devenv-image-dotnet:$(DOTNET_BASE_VERSION)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DOTNET_BASE_VERSION) \
+	  -t devenv-image-dotnet-claude:$(DOTNET_CLAUDE_VERSION) \
+	  -f images/dotnet-claude/Dockerfile \
+	  .
+
+build-dotnet-claude-dev:
+	@if ! docker image inspect devenv-image-dotnet:$(DEV_BASE) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-dotnet:$(DEV_BASE) not found."; \
+	    if [ "$(DEV_BASE)" = "dev" ]; then echo "Run: make build-dotnet-dev"; \
+	    else echo "Build it from the commit tagged dotnet/$(DEV_BASE), or pass DEV_BASE=<version>."; fi; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-dotnet-claude:dev on devenv-image-dotnet:$(DEV_BASE)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DEV_BASE) \
+	  -t devenv-image-dotnet-claude:dev \
+	  -f images/dotnet-claude/Dockerfile \
 	  .

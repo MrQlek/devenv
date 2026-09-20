@@ -1,0 +1,11 @@
+services:
+  devenv:
+    ports:
+      # ASP.NET Core default (ASPNETCORE_HTTP_PORTS=8080 is baked into the SDK image).
+      # Only relevant if the solution also has a web/API project — desktop GUI apps
+      # (Avalonia, Photino) do not serve over HTTP.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ${_DEVENV_USER_HOME}/.devenv/nuget/${IMAGE_VERSION:-dev}:/home/devuser/.nuget/packages
+      - ${_DEVENV_USER_HOME}/.devenv/dotnet-tools/${IMAGE_VERSION:-dev}:/home/devuser/.dotnet/tools
+      - ${_DEVENV_USER_HOME}/.devenv/dotnet-templates/${IMAGE_VERSION:-dev}:/home/devuser/.templateengine

@@ -1,6 +1,6 @@
 # Claude Code integration
 
-The `*-claude` image variants (`golang-claude`, `python-claude`, `typescript-claude`, `hugo-claude`) extend their base image with the Claude Code CLI preinstalled. Configuration, credentials, and session state are mounted from the host so they survive container restarts.
+The `*-claude` image variants (`golang-claude`, `python-claude`, `typescript-claude`, `hugo-claude`, `dotnet-claude`) extend their base image with the Claude Code CLI preinstalled. Configuration, credentials, and session state are mounted from the host so they survive container restarts.
 
 ## Mounts and environment
 

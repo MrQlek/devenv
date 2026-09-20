@@ -194,3 +194,49 @@ The generated `launch.json` attaches the VS Code Node debugger to the inspector 
 ## Hugo (`hugo`, `hugo-claude`)
 
 Hugo is a static-site generator, not a long-running process with a debuggable runtime — there's no remote debugger wired up for it. `hugo server` (port `1313`, published on `127.0.0.1`, declared in `compose/hugo.yml`) gives live reload instead. See [languages/hugo.md](languages/hugo.md) for the full workflow.
+
+---
+
+## .NET (`dotnet`, `dotnet-claude`)
+
+**No debugger is baked into this image**, so there is no `devenv-vscode-debug-dotnet` helper and no debugger port in `compose/dotnet.yml`. This is the one language here that breaks the pattern at the top of this page, for a structural reason.
+
+.NET has no TCP listen-and-attach debug server equivalent to Delve, debugpy, or the Node inspector. VS Code's C# extension debugs into a container by running Microsoft's `vsdbg` **inside** the container and talking to it over stdin/stdout through `docker exec` — a `pipeTransport` configuration, not a socket. That requires `vsdbg` to be present in the image, and `vsdbg` is a separately licensed Microsoft binary whose download would need its own pinned-version-plus-SHA256 installer under `installers/`.
+
+For the primary workflow this image is built for — building and headless-testing Avalonia and Photino apps, then running them on the host — you debug on the host, where the app actually has a display. See [languages/dotnet.md](languages/dotnet.md).
+
+### If you do need to attach
+
+Provision `vsdbg` into the running container yourself, then use `pipeTransport`:
+
+```jsonc
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to .NET in devenv",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickRemoteProcess}",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": ["exec", "-i", "devenv-<project-slug>-dotnet"],
+        "pipeCwd": "${workspaceFolder}",
+        "debuggerPath": "/home/devuser/vsdbg/vsdbg",
+        "quoteArgs": false
+      },
+      "sourceFileMap": { "/workspace": "${workspaceFolder}" }
+    }
+  ]
+}
+```
+
+The container name is what `devenv-connect` targets — `docker ps --filter name=devenv-` will show it. `sourceFileMap` plays the role that `substitutePath` / `pathMappings` / `localRoot` do for the other languages.
+
+### Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| `The pipe program 'docker' exited unexpectedly` | Container not running, or the name in `pipeArgs` doesn't match. Check `docker ps`. |
+| `Unable to start debugging. Debugger path ... not found` | `vsdbg` isn't in the image — it is not installed by default. See above. |
+| Breakpoints stay hollow / "unverified" | `sourceFileMap` mismatch, or the assembly was built on the host with different absolute paths. `dotnet clean` and rebuild in the container. |

@@ -14,6 +14,8 @@ All images are built locally via `make` targets. There is no registry — images
 | `devenv-image-typescript-claude` | `typescript-claude/*` | `images/typescript-claude/` (extends `devenv-image-typescript`) |
 | `devenv-image-hugo` | `hugo/*` | `images/hugo/` (built with the repo root as context — see note below) |
 | `devenv-image-hugo-claude` | `hugo-claude/*` | `images/hugo-claude/` (extends `devenv-image-hugo`) |
+| `devenv-image-dotnet` | `dotnet/*` | `images/dotnet/` |
+| `devenv-image-dotnet-claude` | `dotnet-claude/*` | `images/dotnet-claude/` (extends `devenv-image-dotnet`) |
 
 Each image has its own tag namespace. Tagged builds require the matching tag to be on the current commit (`git describe --exact-match`). For day-to-day work, use the `-dev` variants, which skip the tag requirement and produce `<image>:dev`.
 
@@ -27,12 +29,14 @@ make build-golang
 make build-python
 make build-typescript
 make build-hugo
+make build-dotnet
 
 # Local dev — builds <image>:dev
 make build-golang-dev
 make build-python-dev
 make build-typescript-dev
 make build-hugo-dev
+make build-dotnet-dev
 ```
 
 The image build passes your host `UID`/`GID` as build args so the container's `devuser` matches your host user. This avoids permission issues on bind-mounted files.
@@ -43,7 +47,7 @@ The image build passes your host `UID`/`GID` as build args so the container's `d
 
 The Claude variants are versioned independently from their base. `build-<lang>-claude` requires a `<lang>-claude/*` tag on HEAD and uses the nearest `<lang>/*` tag reachable from HEAD (`git describe --abbrev=0`) as its base — so bumping a Claude image does not require re-tagging or rebuilding the underlying language image.
 
-Replace `<lang>` with `golang`, `python`, `typescript`, or `hugo`:
+Replace `<lang>` with `golang`, `python`, `typescript`, `hugo`, or `dotnet`:
 
 ```bash
 # Production — requires <lang>-claude/* tag on HEAD;
@@ -71,6 +75,8 @@ make list-typescript-tags
 make list-typescript-claude-tags
 make list-hugo-tags
 make list-hugo-claude-tags
+make list-dotnet-tags
+make list-dotnet-claude-tags
 ```
 
 These shell out to `git tag --list "<namespace>/*"`.
