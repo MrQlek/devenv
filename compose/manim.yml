@@ -1,0 +1,6 @@
+services:
+  devenv:
+    volumes:
+      - ${_DEVENV_USER_HOME}/.devenv/manim-uv-cache/${IMAGE_VERSION:-dev}:/home/devuser/.cache/uv
+      - ${_DEVENV_USER_HOME}/.devenv/manim-uv-share/${IMAGE_VERSION:-dev}:/home/devuser/.local/share/uv
+      - ${_DEVENV_USER_HOME}/.devenv/manim-uv-bin/${IMAGE_VERSION:-dev}:/home/devuser/.uv-tools/bin

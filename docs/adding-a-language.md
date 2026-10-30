@@ -19,7 +19,7 @@ The image to run is derived from the language string: `devenv-image-<lang>` or `
 
 1. Create `compose/<lang>.yml` with only language-specific bits (image overrides, caches, debugger port, extra caps, etc.). Service name must be `devenv`.
 2. Build a `devenv-image-<lang>` image (Dockerfile under `images/<lang>/`). The image must declare `ARG USER_ID` / `ARG GROUP_ID` and create a `devuser` user matching those — see the existing Dockerfiles for the pattern.
-3. Add Makefile targets `build-<lang>` (tagged) and `build-<lang>-dev` (untagged), mirroring `build-golang` / `build-golang-dev`. If the image needs to `COPY` something from outside `images/<lang>/` (e.g. an installer script under `installers/`), build with the repo root as context instead — see `build-hugo` / `build-hugo-dev`, which use `-f images/hugo/Dockerfile .` for exactly this reason.
+3. Add Makefile targets `build-<lang>` (tagged) and `build-<lang>-dev` (untagged), mirroring `build-golang` / `build-golang-dev`. If the image needs to `COPY` something from outside `images/<lang>/` (e.g. an installer script under `installers/`), build with the repo root as context instead — see `build-hugo` / `build-hugo-dev` (and `build-manim` / `build-manim-dev`), which use `-f images/<lang>/Dockerfile .` for exactly this reason.
 4. (Optional) Create `shell/lib/<lang>.sh` defining `_devenv_lib_<lang>_hook` — useful for auto-creating cache directories. See the worked example below.
 5. (Optional) Add a per-language page under `docs/languages/<lang>.md` and a debugger section to `docs/debugger-setup.md`.
 

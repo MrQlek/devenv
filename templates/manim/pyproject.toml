@@ -1,0 +1,15 @@
+[project]
+name = "manim-project"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "manim==0.22.0",
+]
+
+# Movies rendered by tools/render.sh <movie>: scenes are rendered and joined in this order.
+# Entries are "<file>:<SceneClass>", paths relative to the project root.
+[tool.movies.example]
+scenes = [
+    "scenes/intro.py:Intro",
+    "scenes/theorem.py:Theorem",
+]

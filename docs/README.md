@@ -11,6 +11,7 @@ Reference documentation for Dev Env. The project [README](../README.md) is the e
 - **[secrets.md](secrets.md)** — hiding host files from the container via `.devenv_exclude/`.
 - **[claude-code.md](claude-code.md)** — Claude Code integration: config mounts, scope prompt, API key security.
 - **[debugger-setup.md](debugger-setup.md)** — per-language remote debugging from VS Code.
+- **[workspace-manager.md](workspace-manager.md)** — launching devenv from `workspace_manager` (`wsm`) project configs.
 
 ## Per-language
 
@@ -19,6 +20,7 @@ Reference documentation for Dev Env. The project [README](../README.md) is the e
 - **[languages/typescript.md](languages/typescript.md)** — TypeScript/Node-specific image contents, Expo, `vsce`.
 - **[languages/hugo.md](languages/hugo.md)** — Hugo-specific image contents, caches, dev server.
 - **[languages/dotnet.md](languages/dotnet.md)** — .NET 10 image contents, Avalonia/Photino GUI workflow, headless model.
+- **[languages/manim.md](languages/manim.md)** — Manim (ManimCE) image contents, `manim-init` starter project, render-and-check scripts for Claude.
 
 ## Contributor docs
 

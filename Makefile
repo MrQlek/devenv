@@ -21,6 +21,9 @@ HUGO_BASE_VERSION   := $(shell git describe --tags --match "hugo/*" --abbrev=0 2
 DOTNET_VERSION        := $(shell git describe --tags --match "dotnet/*" --exact-match 2>/dev/null)
 DOTNET_CLAUDE_VERSION := $(shell git describe --tags --match "dotnet-claude/*" --exact-match 2>/dev/null)
 DOTNET_BASE_VERSION   := $(shell git describe --tags --match "dotnet/*" --abbrev=0 2>/dev/null)
+MANIM_VERSION        := $(shell git describe --tags --match "manim/*" --exact-match 2>/dev/null)
+MANIM_CLAUDE_VERSION := $(shell git describe --tags --match "manim-claude/*" --exact-match 2>/dev/null)
+MANIM_BASE_VERSION   := $(shell git describe --tags --match "manim/*" --abbrev=0 2>/dev/null)
 
 DEV_BASE ?= dev
 
@@ -53,6 +56,12 @@ list-dotnet-tags:
 
 list-dotnet-claude-tags:
 	@git tag --list "dotnet-claude/*"
+
+list-manim-tags:
+	@git tag --list "manim/*"
+
+list-manim-claude-tags:
+	@git tag --list "manim-claude/*"
 
 build-golang:
 	@if [ -z "$(GOLANG_VERSION)" ]; then echo "No golang/* tag on this commit"; exit 1; fi
@@ -281,4 +290,51 @@ build-dotnet-claude-dev:
 	  --build-arg BASE_VERSION=$(DEV_BASE) \
 	  -t devenv-image-dotnet-claude:dev \
 	  -f images/dotnet-claude/Dockerfile \
+	  .
+
+build-manim:
+	@if [ -z "$(MANIM_VERSION)" ]; then echo "No manim/* tag on this commit"; exit 1; fi
+	@echo "Building devenv-image-manim:$(MANIM_VERSION)"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-manim:$(MANIM_VERSION) \
+	  -f images/manim/Dockerfile \
+	  .
+
+build-manim-dev:
+	@echo "Building devenv-image-manim:dev"
+	docker build \
+	  --build-arg USER_ID=$(UID) \
+	  --build-arg GROUP_ID=$(GID) \
+	  -t devenv-image-manim:dev \
+	  -f images/manim/Dockerfile \
+	  .
+
+build-manim-claude:
+	@if [ -z "$(MANIM_CLAUDE_VERSION)" ]; then echo "No manim-claude/* tag on this commit"; exit 1; fi
+	@if [ -z "$(MANIM_BASE_VERSION)" ]; then echo "No manim/* tag reachable from HEAD"; exit 1; fi
+	@if ! docker image inspect devenv-image-manim:$(MANIM_BASE_VERSION) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-manim:$(MANIM_BASE_VERSION) not found. Build it from commit tagged $(MANIM_BASE_VERSION)."; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-manim-claude:$(MANIM_CLAUDE_VERSION) on devenv-image-manim:$(MANIM_BASE_VERSION)"
+	docker build \
+	  --build-arg BASE_VERSION=$(MANIM_BASE_VERSION) \
+	  -t devenv-image-manim-claude:$(MANIM_CLAUDE_VERSION) \
+	  -f images/manim-claude/Dockerfile \
+	  .
+
+build-manim-claude-dev:
+	@if ! docker image inspect devenv-image-manim:$(DEV_BASE) > /dev/null 2>&1; then \
+	    echo "Base image devenv-image-manim:$(DEV_BASE) not found."; \
+	    if [ "$(DEV_BASE)" = "dev" ]; then echo "Run: make build-manim-dev"; \
+	    else echo "Build it from the commit tagged manim/$(DEV_BASE), or pass DEV_BASE=<version>."; fi; \
+	    exit 1; \
+	fi
+	@echo "Building devenv-image-manim-claude:dev on devenv-image-manim:$(DEV_BASE)"
+	docker build \
+	  --build-arg BASE_VERSION=$(DEV_BASE) \
+	  -t devenv-image-manim-claude:dev \
+	  -f images/manim-claude/Dockerfile \
 	  .

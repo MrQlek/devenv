@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Copy the manim starter project into the current directory.
+# Existing files are left untouched unless --force is given.
+set -euo pipefail
+
+TEMPLATE_DIR=/opt/devenv/templates/manim
+
+force=0
+case "${1:-}" in
+    "") ;;
+    -f|--force) force=1 ;;
+    -h|--help)
+        echo "Usage: manim-init [--force]"
+        echo "Copy the manim starter project from $TEMPLATE_DIR into the current directory."
+        echo "Existing files are skipped unless --force is given."
+        exit 0
+        ;;
+    *) echo "manim-init: unknown argument: $1" >&2; exit 2 ;;
+esac
+
+copied=0
+skipped=0
+while IFS= read -r -d '' src; do
+    rel=${src#"$TEMPLATE_DIR"/}
+    if [[ -e "$rel" && $force -eq 0 ]]; then
+        echo "skip  $rel (exists)"
+        skipped=$((skipped + 1))
+        continue
+    fi
+    mkdir -p "$(dirname "$rel")"
+    cp "$src" "$rel"
+    echo "write $rel"
+    copied=$((copied + 1))
+done < <(find "$TEMPLATE_DIR" -type f -print0 | sort -z)
+
+echo
+echo "$copied file(s) written, $skipped skipped."
+[[ $skipped -gt 0 && $force -eq 0 ]] && echo "Re-run with --force to overwrite skipped files."
+echo "Next: uv sync && tools/render.sh example"

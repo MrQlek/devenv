@@ -51,10 +51,10 @@ _devenv_load_libs() {
     local pre_existing
     pre_existing=$(compgen -A function 2>/dev/null | grep -E '^_devenv_lib_[a-z0-9_]+_hook$' || true)
     if [ -n "$pre_existing" ]; then
-        echo "ERROR: dev.sh: pre-existing functions match the hook pattern '_devenv_lib_*_hook':" >&2
-        echo "$pre_existing" | sed 's/^/  - /' >&2
+        echo "ERROR: dev.sh: pre-existing functions match the hook pattern '_devenv_lib_*_hook'." >&2
         echo "Refusing to source shell/lib/ to avoid running unintended code." >&2
-        echo "Unset them ('unset -f <name>') and retry." >&2
+        echo "Unset them and retry:" >&2
+        echo "  unset -f $(echo "$pre_existing" | tr '\n' ' ' | sed 's/ *$//')" >&2
         return 1
     fi
 

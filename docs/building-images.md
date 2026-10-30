@@ -16,6 +16,8 @@ All images are built locally via `make` targets. There is no registry — images
 | `devenv-image-hugo-claude` | `hugo-claude/*` | `images/hugo-claude/` (extends `devenv-image-hugo`) |
 | `devenv-image-dotnet` | `dotnet/*` | `images/dotnet/` |
 | `devenv-image-dotnet-claude` | `dotnet-claude/*` | `images/dotnet-claude/` (extends `devenv-image-dotnet`) |
+| `devenv-image-manim` | `manim/*` | `images/manim/` (built with the repo root as context — see note below) |
+| `devenv-image-manim-claude` | `manim-claude/*` | `images/manim-claude/` (extends `devenv-image-manim`) |
 
 Each image has its own tag namespace. Tagged builds require the matching tag to be on the current commit (`git describe --exact-match`). For day-to-day work, use the `-dev` variants, which skip the tag requirement and produce `<image>:dev`.
 
@@ -30,6 +32,7 @@ make build-python
 make build-typescript
 make build-hugo
 make build-dotnet
+make build-manim
 
 # Local dev — builds <image>:dev
 make build-golang-dev
@@ -37,17 +40,20 @@ make build-python-dev
 make build-typescript-dev
 make build-hugo-dev
 make build-dotnet-dev
+make build-manim-dev
 ```
 
 The image build passes your host `UID`/`GID` as build args so the container's `devuser` matches your host user. This avoids permission issues on bind-mounted files.
 
 > **Hugo build context.** Unlike the other base-language images, `images/hugo/Dockerfile` installs Hugo via `installers/hugo/install.sh` (mirroring how the `*-claude` images install Claude Code), so `build-hugo`/`build-hugo-dev` build with the repo root as context (`-f images/hugo/Dockerfile .`) instead of `images/hugo/` — that's what makes `COPY installers/hugo/install.sh` resolve.
+>
+> **Manim build context.** `images/manim/Dockerfile` likewise COPYs from outside its directory — the starter project in `templates/manim/` and the `manim-init` script — so `build-manim`/`build-manim-dev` also build with the repo root as context (`-f images/manim/Dockerfile .`).
 
 ## Claude variants
 
 The Claude variants are versioned independently from their base. `build-<lang>-claude` requires a `<lang>-claude/*` tag on HEAD and uses the nearest `<lang>/*` tag reachable from HEAD (`git describe --abbrev=0`) as its base — so bumping a Claude image does not require re-tagging or rebuilding the underlying language image.
 
-Replace `<lang>` with `golang`, `python`, `typescript`, `hugo`, or `dotnet`:
+Replace `<lang>` with `golang`, `python`, `typescript`, `hugo`, `dotnet`, or `manim`:
 
 ```bash
 # Production — requires <lang>-claude/* tag on HEAD;
@@ -77,6 +83,8 @@ make list-hugo-tags
 make list-hugo-claude-tags
 make list-dotnet-tags
 make list-dotnet-claude-tags
+make list-manim-tags
+make list-manim-claude-tags
 ```
 
 These shell out to `git tag --list "<namespace>/*"`.

@@ -20,6 +20,9 @@ The version segment in each path is the image tag you invoked `devenv` with (`de
 | .NET | `~/.devenv/nuget/<version>/` | `/home/devuser/.nuget/packages` | NuGet global packages folder (`NUGET_PACKAGES`) |
 | .NET | `~/.devenv/dotnet-tools/<version>/` | `/home/devuser/.dotnet/tools` | `dotnet tool install -g` shims (added to `PATH`) |
 | .NET | `~/.devenv/dotnet-templates/<version>/` | `/home/devuser/.templateengine` | `dotnet new install` templates (e.g. `Avalonia.Templates`) |
+| Manim | `~/.devenv/manim-uv-cache/<version>/` | `/home/devuser/.cache/uv` | uv download cache (incl. locally built pycairo/ManimPango wheels) |
+| Manim | `~/.devenv/manim-uv-share/<version>/` | `/home/devuser/.local/share/uv` | `uv tool install` environments |
+| Manim | `~/.devenv/manim-uv-bin/<version>/` | `/home/devuser/.uv-tools/bin` | uv tool shims (added to `PATH`) |
 
 Claude variants additionally use `~/.devenv/claude/` for configuration mounts — see [claude-code.md](claude-code.md).
 
@@ -29,6 +32,7 @@ A few things live inside your workspace rather than under `~/.devenv/`, so they 
 
 - **Python `.venv/`** — the uv-managed project venv is created in your project directory and mounted with it.
 - **TypeScript `node_modules/`** — per-project `node_modules` live in the workspace.
+- **Manim `.venv/` and `media/`** — the project venv (with the pinned manim) and rendered output live in the project directory.
 - **.NET `bin/` and `obj/`** — build output stays in the project directory. `obj/` records absolute paths, so `dotnet clean` when switching between building in the container and on the host.
 
 This keeps project dependencies tied to the project tree (and to its git/branch state), while the host caches above stay shared across projects.
@@ -43,6 +47,7 @@ rm -rf ~/.devenv/uv-cache/<old-version> ~/.devenv/uv-share/<old-version> ~/.deve
 rm -rf ~/.devenv/npm-cache/<old-version> ~/.devenv/expo/<old-version>
 rm -rf ~/.devenv/hugo-mod/<old-version> ~/.devenv/hugo-cache/<old-version>
 rm -rf ~/.devenv/nuget/<old-version> ~/.devenv/dotnet-tools/<old-version> ~/.devenv/dotnet-templates/<old-version>
+rm -rf ~/.devenv/manim-uv-cache/<old-version> ~/.devenv/manim-uv-share/<old-version> ~/.devenv/manim-uv-bin/<old-version>
 ```
 
 The cache directories are recreated automatically on the next `devenv` invocation for that version.
