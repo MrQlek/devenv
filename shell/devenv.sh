@@ -205,12 +205,29 @@ _devenv_prepare() {
 }
 
 devenv() {
+    # --no-default-ports: skip the ports declared in compose/<lang>.yml (debugger,
+    # dev server) so several containers of the same language can run at once.
+    # Ports passed explicitly as args 3/4 are still published.
+    local default_ports=1
+    local -a positional=()
+    local a
+    for a in "$@"; do
+        case "$a" in
+            --no-default-ports) default_ports=0 ;;
+            *)                  positional+=("$a") ;;
+        esac
+    done
+    set -- "${positional[@]}"
+
     local language=${1:-golang}
     local version=${2:-dev}
     local ports=${3:-}
     local public_ports=${4:-}
 
     _devenv_prepare "$language" "$version" "$ports" "$public_ports" || return 1
+
+    local -a run_flags=(--name "$_DEVENV_PREP_CONTAINER_NAME" --rm)
+    [ "$default_ports" -eq 1 ] && run_flags+=(--service-ports)
 
     _devenv_run_compose \
         "$_DEVENV_USER_HOME" \
@@ -223,9 +240,7 @@ devenv() {
         "${_DEVENV_PREP_COMPOSE_FILES[@]}" \
         -- \
         run \
-        --name "$_DEVENV_PREP_CONTAINER_NAME" \
-        --rm \
-        --service-ports \
+        "${run_flags[@]}" \
         "${_DEVENV_PREP_PORT_ARGS[@]}" \
         -v "$(pwd):/workspace" \
         "${_DEVENV_PREP_GIT_MOUNT[@]}" \
@@ -235,14 +250,15 @@ devenv() {
 
 devenv-inspect() {
     local raw=0
+    local default_ports=1
     local -a positional=()
     local a
     for a in "$@"; do
-        if [ "$a" = "--raw" ]; then
-            raw=1
-        else
-            positional+=("$a")
-        fi
+        case "$a" in
+            --raw)              raw=1 ;;
+            --no-default-ports) default_ports=0 ;;
+            *)                  positional+=("$a") ;;
+        esac
     done
     set -- "${positional[@]}"
 
@@ -274,6 +290,11 @@ devenv-inspect() {
     echo "container name: $_DEVENV_PREP_CONTAINER_NAME"
     echo "service:        devenv"
     echo "command:        bash"
+    if [ "$default_ports" -eq 1 ]; then
+        echo "default ports:  published (ports: from compose files above)"
+    else
+        echo "default ports:  skipped (--no-default-ports; ports: above are NOT published)"
+    fi
     if [ ${#_DEVENV_PREP_PORT_ARGS[@]} -gt 0 ]; then
         echo "extra ports:    ${_DEVENV_PREP_PORT_ARGS[*]}"
     else

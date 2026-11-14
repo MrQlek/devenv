@@ -1,2 +1,4 @@
 .vscode
 .devenv_exclude
+CLAUDE.md
+agent/

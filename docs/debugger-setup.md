@@ -240,3 +240,9 @@ The container name is what `devenv-connect` targets — `docker ps --filter name
 | `The pipe program 'docker' exited unexpectedly` | Container not running, or the name in `pipeArgs` doesn't match. Check `docker ps`. |
 | `Unable to start debugging. Debugger path ... not found` | `vsdbg` isn't in the image — it is not installed by default. See above. |
 | Breakpoints stay hollow / "unverified" | `sourceFileMap` mismatch, or the assembly was built on the host with different absolute paths. `dotnet clean` and rebuild in the container. |
+
+---
+
+## Manim (`manim`, `manim-claude`)
+
+No remote debugger is wired up and `compose/manim.yml` publishes no ports — manim renders to files. Inspect output with the starter project's `tools/preview.sh` / `tools/frames.sh` (PNG stills you or Claude can look at) and use manim's `-v DEBUG` for verbose logs. See [languages/manim.md](languages/manim.md).

@@ -11,6 +11,14 @@ _devenv_list_images() {
 
 _devenv_complete() {
     local cur=${COMP_WORDS[COMP_CWORD]}
+
+    if [[ "$cur" == -* ]]; then
+        local flags="--no-default-ports"
+        [ "${COMP_WORDS[0]}" = "devenv-inspect" ] && flags+=" --raw"
+        COMPREPLY=($(compgen -W "$flags" -- "$cur"))
+        return
+    fi
+
     local images
     images=$(_devenv_list_images)
 

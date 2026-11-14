@@ -1,6 +1,6 @@
 # Dev Env
 
-Reproducible, containerized development environments for Go, Python, TypeScript, Hugo, and .NET, with optional Claude Code integration.
+Reproducible, containerized development environments for Go, Python, TypeScript, Hugo, .NET, and Manim, with optional Claude Code integration.
 
 Each language gets its own image with the toolchain, debugger, and CLI utilities preinstalled. Your current directory bind-mounts at `/workspace`, the container runs as a non-root `devuser` matching your host UID/GID (no `chown` dance on bind-mounted files), and per-language caches are persisted on the host under `~/.devenv/` so you don't re-download modules on every restart.
 
@@ -14,7 +14,7 @@ git clone https://github.com/MrQlek/devenv ~/code/devenv
 cd ~/code/devenv
 
 # 2. Build the image for the language you want
-make build-golang-dev          # or build-python-dev / build-typescript-dev
+make build-golang-dev          # or build-python-dev / build-typescript-dev / build-manim-dev …
 
 # 3. Source the shell helpers (add to your ~/.bashrc or ~/.zshrc)
 source ~/code/devenv/shell/devenv.sh
@@ -24,7 +24,7 @@ cd ~/code/myproject
 devenv golang dev              # your cwd is mounted at /workspace
 ```
 
-For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`, `hugo-claude`), build the base image first, then the Claude image on top — see [docs/building-images.md](docs/building-images.md).
+For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`, `hugo-claude`, `dotnet-claude`, `manim-claude`), build the base image first, then the Claude image on top — see [docs/building-images.md](docs/building-images.md).
 
 ## Available environments
 
@@ -40,8 +40,10 @@ For the Claude variants (`golang-claude`, `python-claude`, `typescript-claude`, 
 | `devenv-image-hugo-claude` | …plus Claude Code CLI |
 | `devenv-image-dotnet` | .NET 10.0 SDK (for Avalonia / Photino GUI apps) + `fzf`, `ripgrep`, `fd`, `jq`, `vim` |
 | `devenv-image-dotnet-claude` | …plus Claude Code CLI |
+| `devenv-image-manim` | Python 3.14 + `uv` + `ffmpeg` + curated TeX Live + cairo/pango build deps for [Manim Community Edition](https://www.manim.community/); starter project via `manim-init` (manim itself is pinned per project by `uv`, not baked into the image) |
+| `devenv-image-manim-claude` | …plus Claude Code CLI |
 
-Ten images in total — five languages × with/without Claude. Each is documented in [docs/languages/](docs/languages/).
+Twelve images in total — six languages × with/without Claude. Each is documented in [docs/languages/](docs/languages/).
 
 ## Versioning
 
@@ -59,6 +61,8 @@ Each image has its own git-tag namespace, and Claude variants are versioned inde
 | `devenv-image-hugo-claude` | `hugo-claude/*` |
 | `devenv-image-dotnet` | `dotnet/*` |
 | `devenv-image-dotnet-claude` | `dotnet-claude/*` |
+| `devenv-image-manim` | `manim/*` |
+| `devenv-image-manim-claude` | `manim-claude/*` |
 
 Tagged builds (e.g. `make build-golang`) require the matching tag on HEAD. For day-to-day work use `make build-<lang>-dev`, which produces `:dev` and skips the tag requirement. Full rules in [docs/building-images.md](docs/building-images.md).
 
@@ -66,7 +70,7 @@ Tagged builds (e.g. `make build-golang`) require the matching tag on HEAD. For d
 
 After sourcing `shell/devenv.sh`:
 
-- **`devenv [language] [version] [ports] [public-ports]`** — start a container with cwd mounted at `/workspace`. Defaults to `golang dev`.
+- **`devenv [language] [version] [ports] [public-ports]`** — start a container with cwd mounted at `/workspace`. Defaults to `golang dev`. Add `--no-default-ports` to skip the language's built-in port mappings (debugger, dev server) so you can run several containers of the same language at once, e.g. `devenv python dev 8001 --no-default-ports`.
 - **`devenv-connect [language]`** — open an additional shell in a running container.
 - **`devenv-exec [language] <command> [args...]`** — run a one-off command in a running container.
 - **`devenv-inspect [language] [version] …`** — print the merged compose config and runtime flags without launching.
@@ -100,7 +104,7 @@ For defense in depth — especially when running coding agents that fetch and ex
 - [docs/secrets.md](docs/secrets.md) — `.devenv_exclude/` and threat model
 - [docs/claude-code.md](docs/claude-code.md) — Claude Code config mounts and API key security
 - [docs/debugger-setup.md](docs/debugger-setup.md) — per-language remote debugging
-- [docs/languages/](docs/languages/) — Go, Python, TypeScript, Hugo, .NET specifics
+- [docs/languages/](docs/languages/) — Go, Python, TypeScript, Hugo, .NET, Manim specifics
 - [docs/adding-a-language.md](docs/adding-a-language.md) — extend the system with a new language or addon
 
 ## Requirements
